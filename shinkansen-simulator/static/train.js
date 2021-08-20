@@ -17,7 +17,7 @@ phina.globalize();
 
 // 定数
 var SCREEN_WIDTH  = 1920;	// 画面横サイズ(document.documentElement.clientWidth)
-var SCREEN_HEIGHT = 1090;	// 画面縦サイズ(document.documentElement.clientHeight)
+var SCREEN_HEIGHT = 992;	// 画面縦サイズ(document.documentElement.clientHeight)
 var GRID_SIZE = 32;			// グリッドのサイズ
 var PANEL_SIZE = GRID_SIZE;	// パネルの大きさ
 var PANEL_OFFSET_X = GRID_SIZE*2;	// オフセット値
@@ -107,7 +107,7 @@ var ASSETS = {
 }
 
 // グローバル変数
-// 列車配列初期化
+var game_app = null;
 var demo = 1;
 var startDate = getCurrentDate(1);
 var currentDate = startDate;
@@ -116,6 +116,9 @@ var stations = [];
 var trains = [];
 // グリッド
 var grid = Grid(GRID_SIZE * PANEL_NUM_X, PANEL_NUM_X);
+// 列車数を初期化
+var train_down_count = 0;
+var train_up_count = 0;
 
 // MainScene クラス定義：メインシーン
 phina.define('MainScene', {
@@ -127,7 +130,7 @@ phina.define('MainScene', {
 			this.superInit({
 				width: SCREEN_WIDTH,
 				height: SCREEN_HEIGHT,
-				backgroundColor: 'silver',	// 'transparent' or 'white',
+				backgroundColor: 'lightgreen',	// 'transparent' or 'white',
 				// fill: 'transparent',	// 'white',
 			});
 			// グループ作成
@@ -147,6 +150,10 @@ phina.define('MainScene', {
 			this.time.align = 'right';
 			this.time.x = grid.span(PANEL_NUM_X) + PANEL_OFFSET_X;
 			this.time.y = grid.span(3) + PANEL_OFFSET_Y;
+			// 列車数表示
+			this.train_count = Label('下り：0  上り：0').addChildTo(this);
+			this.train_count.x = grid.span(PANEL_NUM_X/2) + PANEL_OFFSET_X;
+			this.train_count.y = grid.span(3) + PANEL_OFFSET_Y;
 
 			// 駅舎を表示する
 			for(i=0; i<STATIONS.length; i++) {
@@ -181,11 +188,36 @@ phina.define('MainScene', {
 			});
 			// 時刻表を取得する
 			get_timetable();
-			// 列車数を初期化
-			this.down_count = 0;
-			this.up_count = 0;
+			// のぞみの列車数：吹き出しの位置調整用
 			this.down_nozomi_count = 0;
 			this.up_nozomi_count = 0;
+			// 設定ボタン作成
+/*
+			var chkAndroid = navigator.userAgent.indexOf("Android") > 0;
+			var button = Button({
+				x: grid.span(PANEL_NUM_X) + PANEL_OFFSET_X + (GRID_SIZE/2)*3,	// x座標
+				y: grid.span(3) + PANEL_OFFSET_Y,	// y座標
+				width: GRID_SIZE*2,	// 横サイズ
+				height: GRID_SIZE,	// 縦サイズ
+				text: '設定',		// 表示文字
+				fontSize: 28,		// 文字サイズ
+				fontColor: 'black',	// 文字色
+				cornerRadius: 10,	// 角丸み
+				fill: 'silver',		// ボタン色
+				stroke: 'gray',		// 枠色
+				strokeWidth: 5,		// 枠太さ
+			}).addChildTo(this);
+			button.onpointend = function() {
+				// ボタンが押されたときの処理
+				document.getElementById('setup_dialog').style.visibility = 'visible';
+			}
+			button.onpointover = function(e){
+				// Android端末使用時のタップ遅延対策
+				if (!e.pointer.getPointing() && chkAndroid) {
+					this.onpointend();
+				}
+			}
+*/
 		},
 		// 更新
 		update: function() {
@@ -195,6 +227,8 @@ phina.define('MainScene', {
 			var hm = cTime.split(':');
 			this.time.text = hm[0]+'時'+hm[1]+'分';
 			console.log('MainScene.update: ' + cTime);
+			// 列車数を更新
+			this.train_count.text = '下り：' + train_down_count + '  上り：' + train_up_count;
 			// 下り列車を更新
 			for(let key in DIAGRAM_DOWN) {
 				if(key == 'property') continue;
@@ -202,7 +236,6 @@ phina.define('MainScene', {
 				if(DIAGRAM_DOWN[key]['status'][0] != null) continue;
 				if(DIAGRAM_DOWN[key]['property'][1] > cTime
 				|| DIAGRAM_DOWN[key]['property'][2] < cTime) continue;
-				this.down_count++;
 				if(key.substr(0, 3) == 'のぞみ') {
 					this.down_nozomi_count++;
 				}
@@ -216,7 +249,6 @@ phina.define('MainScene', {
 				if(DIAGRAM_UP[key]['status'][0] != null) continue;
 				if(DIAGRAM_UP[key]['property'][1] > cTime
 				|| DIAGRAM_UP[key]['property'][2] < cTime) continue;
-				this.up_count++;
 				if(key.substr(0, 3) == 'のぞみ') {
 					this.up_nozomi_count++;
 				}
@@ -268,7 +300,7 @@ phina.define('Train_down', {
 			});
 			this.name = name;
 			this.diagram = DIAGRAM_DOWN[this.name];
-			this.diagram['status'][0] = this;
+			this.diagram['status'][0] = null;
 			DIAGRAM_DOWN[this.name]['status'][0] = this;
 			// イメージ表示
 			this.x = grid.span(PANEL_NUM_X - 1) + PANEL_OFFSET_X;
@@ -299,25 +331,16 @@ phina.define('Train_down', {
 				tipBottomSize: 24,
 				bubbleFill: balloon_color,
 			}).addChildTo(this).setPosition(0, posY);
-/*
-			if(this.name.substr(0, 3) == 'のぞみ') {
-				if((count % 2) == 1) {
-					this.balloon.setPosition(0, 120+64);
-				}
-			} else if(this.name.substr(0, 3) == 'ひかり') {
-				this.balloon.setPosition(0, 120+128);
-			} else if(this.name.substr(0, 3) == 'こだま') {
-				this.balloon.setPosition(0, 120+192);
-			}
-*/
 			this.balloon.fontFamily = 'sans-serif';
 			this.balloon.fontSize = 12;
-			updateTrain(this, DIAGRAM_DOWN);
+			// 列車位置調整：下り列車数
+			train_down_count += updateTrain(this, DIAGRAM_DOWN);
 		},
 		// 更新
 		update: function() {
 			// console.log('Train_down.update');
-			updateTrain(this, DIAGRAM_DOWN);
+			// 列車位置調整：下り列車数
+			train_down_count += updateTrain(this, DIAGRAM_DOWN);
 		},
 });
 
@@ -335,7 +358,7 @@ phina.define('Train_up', {
 			});
 			this.name = name;
 			this.diagram = DIAGRAM_UP[this.name];
-			this.diagram['status'][0] = this;
+			this.diagram['status'][0] = null;
 			DIAGRAM_UP[this.name]['status'][0] = this;
 			// イメージ表示
 			this.y = grid.span(TRAIN_UP - 1) + PANEL_OFFSET_Y;
@@ -367,12 +390,14 @@ phina.define('Train_up', {
 			}).addChildTo(this).setPosition(58, posY);
 			this.balloon.fontFamily = 'sans-serif';
 			this.balloon.fontSize = 12;
-			updateTrain(this, DIAGRAM_UP);
+			// 列車位置調整：上り列車数
+			train_up_count += updateTrain(this, DIAGRAM_UP);
 		},
 		// 更新
 		update: function() {
 			// console.log('Train_up.update');
-			updateTrain(this, DIAGRAM_UP);
+			// 列車位置調整：上り列車数
+			train_up_count += updateTrain(this, DIAGRAM_UP);
 		},
 });
 
@@ -399,8 +424,8 @@ phina.define('Station', {
 			this.y = grid.span(y) + PANEL_OFFSET_Y;
 			// 駅名表示
 			var label = Label(name.split('').join('\n')).addChildTo(this);
-			label.fontFamily = "'sans-serif'";
-			label.fontSize = 24;
+			label.fontFamily = 'sans-serif';
+			label.fontSize = 26;
 			label.fill = 'black';
 			// ホームを表示
 			var home = Shape({
@@ -454,16 +479,16 @@ phina.define('Station', {
 // メイン処理
 phina.main(function() {
 	// アプリケーション生成
-	var app = GameApp({
-		title: 'phina.jsの練習(phina.js.main)',
-		fps: 1.0,				// fps指定
+	game_app = GameApp({
+		title: '東海道新幹線運行シミュレーター',
+		fps: 0.5,				// fps指定
 		startLabel: 'main',		// メインシーンから開始する
 		width: SCREEN_WIDTH + GRID_SIZE,
 		height: SCREEN_HEIGHT + GRID_SIZE,
 		assets: ASSETS,
 	});
 	// アプリケーション実行
-	app.run();
+	game_app.run();
 });
 
 
@@ -511,6 +536,7 @@ function get_timetable() {
 
 // 列車を更新する
 function updateTrain(train, diagram) {
+	var rc = 0;
 	var cTime = getCurrentTime(false);
 	if(train.diagram['property'][1] > cTime
 	|| train.diagram['property'][2] < cTime) {
@@ -520,12 +546,14 @@ function updateTrain(train, diagram) {
 			train.status = TRAIN_STATUS[TRAIN_OUTOF_RAIL];
 			train.balloon.hide();
 			train.hide();
+			rc = -1;
 		}
 	} else {
 		if(train.diagram['status'][0] == null) {
 			train.diagram['status'][0] = train;
 			train.balloon.hide();
 			train.show();
+			rc = 1;
 		}
 		var xPos = calcTrainPosition(train);
 		if(xPos != -1) {
@@ -546,7 +574,7 @@ function updateTrain(train, diagram) {
 			train.balloon.hide();
 		}
 	}
-	return true;
+	return rc;
 }
 
 // 現在日時を取得する
