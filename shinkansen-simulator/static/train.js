@@ -191,8 +191,8 @@ phina.define('MainScene', {
 			// のぞみの列車数：吹き出しの位置調整用
 			this.down_nozomi_count = 0;
 			this.up_nozomi_count = 0;
-			// 設定ボタン作成
 /*
+			// 設定ボタン作成
 			var chkAndroid = navigator.userAgent.indexOf("Android") > 0;
 			var button = Button({
 				x: grid.span(PANEL_NUM_X) + PANEL_OFFSET_X + (GRID_SIZE/2)*3,	// x座標
@@ -227,8 +227,6 @@ phina.define('MainScene', {
 			var hm = cTime.split(':');
 			this.time.text = hm[0]+'時'+hm[1]+'分';
 			console.log('MainScene.update: ' + cTime);
-			// 列車数を更新
-			this.train_count.text = '下り：' + train_down_count + '  上り：' + train_up_count;
 			// 下り列車を更新
 			for(let key in DIAGRAM_DOWN) {
 				if(key == 'property') continue;
@@ -255,6 +253,8 @@ phina.define('MainScene', {
 				console.log('MainScene.update Train_up:' + DIAGRAM_UP[key]['property'].join(','));
 				Train_up(key, this.up_nozomi_count).addChildTo(this.groupTrain);
 			}
+			// 列車数を更新
+			this.train_count.text = '下り：' + train_down_count + '  上り：' + train_up_count;
 		},
 });
 
@@ -300,7 +300,7 @@ phina.define('Train_down', {
 			});
 			this.name = name;
 			this.diagram = DIAGRAM_DOWN[this.name];
-			this.diagram['status'][0] = null;
+			this.diagram['status'][0] = this;
 			DIAGRAM_DOWN[this.name]['status'][0] = this;
 			// イメージ表示
 			this.x = grid.span(PANEL_NUM_X - 1) + PANEL_OFFSET_X;
@@ -334,7 +334,8 @@ phina.define('Train_down', {
 			this.balloon.fontFamily = 'sans-serif';
 			this.balloon.fontSize = 12;
 			// 列車位置調整：下り列車数
-			train_down_count += updateTrain(this, DIAGRAM_DOWN);
+			train_down_count++;
+			updateTrain(this, DIAGRAM_DOWN);
 		},
 		// 更新
 		update: function() {
@@ -358,7 +359,7 @@ phina.define('Train_up', {
 			});
 			this.name = name;
 			this.diagram = DIAGRAM_UP[this.name];
-			this.diagram['status'][0] = null;
+			this.diagram['status'][0] = this;
 			DIAGRAM_UP[this.name]['status'][0] = this;
 			// イメージ表示
 			this.y = grid.span(TRAIN_UP - 1) + PANEL_OFFSET_Y;
@@ -391,7 +392,8 @@ phina.define('Train_up', {
 			this.balloon.fontFamily = 'sans-serif';
 			this.balloon.fontSize = 12;
 			// 列車位置調整：上り列車数
-			train_up_count += updateTrain(this, DIAGRAM_UP);
+			train_up_count++;
+			updateTrain(this, DIAGRAM_UP);
 		},
 		// 更新
 		update: function() {
