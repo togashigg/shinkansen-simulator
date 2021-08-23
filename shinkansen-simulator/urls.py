@@ -13,11 +13,20 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
+# from django.contrib import admin
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
+from shinkansen-simulator import views
+
+favicon_view = RedirectView.as_view(url='/static/favicon.ico', permanent=True)
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # path('admin/', admin.site.urls),
+    path('', views.index),
+    path('favicon.ico', favicon_view),
+    re_path(r'^(?P<filePath>[^\.]+\.html)$', views.html),
+    re_path(r'^cache/(?P<filePath>[^\.]+\.json)$', views.json),
+    # re_path(r'^cache/(?P<filePath>[^\.]+\.csv)$', views.csv),
+    # re_path(r'^cache/(?P<filePath>[^\.]+\.txt)$', views.text),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
