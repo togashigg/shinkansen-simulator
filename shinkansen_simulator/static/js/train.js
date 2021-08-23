@@ -98,11 +98,9 @@ var TRAIN_SOON_ARRIVAL = 8;
 var TRAIN_ARRIVAL      = 9;
 var ASSETS = {
 	image: {
-		'line':		'images/線路01.gif',
-		'300up':	'images/300系上り.gif',
-		'300down':	'images/300系下り.gif',
-		'balloon_1':	'images/balloon_下り.png',
-		'balloon_2':	'images/balloon_上り.png',
+		'line':		'/static/images/線路01.gif',
+		'300up':	'/static/images/300系上り.gif',
+		'300down':	'/static/images/300系下り.gif',
 	},
 }
 
@@ -497,7 +495,7 @@ phina.main(function() {
 // 時刻表を取得する
 function get_timetable() {
 	console.log('get_timetable() start.');
-	var get_url = './timetables.json';
+	var get_url = '/cache/timetables.json';
 	var tt_json = '';
 	var xhr = new XMLHttpRequest();
 	xhr.onreadystatechange = function() {

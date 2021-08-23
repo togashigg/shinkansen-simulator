@@ -49,12 +49,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'shinkansen-simulator.urls'
+ROOT_URLCONF = 'shinkansen_simulator.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'shinkansen_simulator', 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -67,7 +67,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'shinkansen-simulator.wsgi.application'
+WSGI_APPLICATION = 'shinkansen_simulator.wsgi.application'
 
 
 # Database
@@ -121,4 +121,4 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'shinkansen-simulator', 'static')]
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'shinkansen_simulator', 'static')]
