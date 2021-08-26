@@ -4,7 +4,6 @@
 // phina.js Tips集：https://qiita.com/alkn203/items/bca3222f6b409382fe20
 // [phina.js]オブジェクトの操作 -位置、移動、衝突・クリック判定など- について：https://horohorori.com/memo_phina_js/about_object2d/
 // 吹き出し：https://github.com/pentamania/phina-talkbubble
-// 古い！グループ管理の基本テクニック：https://qiita.com/alkn203/items/8ad0b80175d23d03bd49
 // 緯度・経度：https://mapfan.com/map/spots/search
 // JRアクセス検索：https://railway.jr-central.co.jp/timetable/nr_doc/search.html
 // JR到着列車案内：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti09.html
@@ -184,6 +183,13 @@ phina.define('MainScene', {
 			// 背景表示
 			this.back_image = Sprite('日本地図').addChildTo(back_panel).setRotation(8);
 			this.back_image.setPosition(1560, -10).setScale(12.9, 6.0);
+			// 謝辞を表示
+			Label({
+				text: '謝辞：Phina.js、phina-talkbubble.js、encoding.js、JR東海時刻表、日本地図(素材Library.com)を使わせて頂きました。',
+				x: grid.span(PANEL_NUM_X/2+1),
+				y: grid.span(PANEL_NUM_Y) + 16,
+				fontSize: 24,
+			}).addChildTo(back_panel);
 			// タイトル表示
 			this.title = Label({
 				text: '東海道新幹線なんちゃって運行シミュレーター（試作版）',
