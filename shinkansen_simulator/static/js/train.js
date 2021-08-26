@@ -1,4 +1,5 @@
-// train,js
+// train,js: 東海道新幹線なんちゃって運行シミュレーター（試作版）
+// COPYRIGHT (C) N.Togashi
 // phina.js docs：https://phinajs.com/docs/
 // phina.js Tips集：https://qiita.com/alkn203/items/bca3222f6b409382fe20
 // [phina.js]オブジェクトの操作 -位置、移動、衝突・クリック判定など- について：https://horohorori.com/memo_phina_js/about_object2d/
@@ -11,11 +12,21 @@
 // JR個別列車時刻表(こだま)：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti07.html?traintype=2&train=723
 // JR個別列車時刻表(ひかり)：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti07.html?traintype=1&train=511
 // JR個別列車時刻表(のぞみ)：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti07.html?traintype=6&train=31
+// 素材Library.com > 無料イラストTOP > 地図, 日本地図 > 日本地図（ベクターデータ）のイラスト素材・白フチと海：https://www.sozai-library.com/sozai/2528
 
 // phina.js をグローバル領域に展開
 phina.globalize();
 
 // 定数
+var ENVIRONMENT = 'heroku';
+// var ENVIRONMENT = 'VSC';
+if(ENVIRONMENT == 'heroku') {
+	STATIC_PATH = '/static/';
+	CACHE_PATH = '/cache/';
+} else {
+	STATIC_PATH = './'
+	CACHE_PATH = './';
+}
 var SCREEN_WIDTH  = 1920;	// 画面横サイズ(document.documentElement.clientWidth)
 var SCREEN_HEIGHT = 992;	// 画面縦サイズ(document.documentElement.clientHeight)
 var GRID_SIZE = 32;			// グリッドのサイズ
@@ -24,17 +35,17 @@ var PANEL_OFFSET_X = GRID_SIZE*2;	// オフセット値
 var PANEL_OFFSET_Y = 0;		// オフセット値
 var PANEL_NUM_X = (SCREEN_WIDTH  - PANEL_OFFSET_X*2 - GRID_SIZE) / GRID_SIZE;	// 横のパネル数
 var PANEL_NUM_Y = (SCREEN_HEIGHT - PANEL_OFFSET_Y*2 - GRID_SIZE) / GRID_SIZE;	// 縦のパネル数
-var LINE_POS_Y = [21, 22];	// 線路のパネル位置縦
-var TRAIN_UP = 20;			// 上り
+var LINE_POS_Y = [20, 22];	// 線路のパネル位置縦
+var TRAIN_UP = 19;			// 上り
 var TRAIN_DOWN = 21;		// 下り
 var STATION_Y = 6;			// 駅舎の縦位置
-var STATION_SIZE = 64;		// 駅舎のサイズ
+var STATION_SIZE = [56, 128];	// 駅舎のサイズ[X, Y]
 var STATIONS = [			// 駅舎情報 ID,駅名,X
 	[ 0, '東京',		PANEL_NUM_X-1,				STATION_Y, 6, [35.6809591, 139.7673068], 0, 0],
 	[ 1, '品川',		((PANEL_NUM_X-3)/16)*15+2,	STATION_Y, 4, [35.6291112, 139.7389313], 0, 0],
 	[ 2, '新横浜',		((PANEL_NUM_X-3)/16)*14+2,	STATION_Y, 4, [35.5067084, 139.6168805], 0, 0],
 	[ 3, '小田原',		((PANEL_NUM_X-3)/16)*13+2,	STATION_Y, 4, [35.2562557, 139.1554675], 0, 0],
-	[ 4, '熱海',		((PANEL_NUM_X-3)/16)*12+2,	STATION_Y, 2, [35.0415591, 139.1696865], 0, 0],
+	[ 4, '熱海',		((PANEL_NUM_X-3)/16)*12+2,	STATION_Y, 2, [35.1038,    139.0778   ], 0, 0],
 	[ 5, '三島',		((PANEL_NUM_X-3)/16)*11+2,	STATION_Y, 4, [35.126334,  138.9107634], 0, 0],
 	[ 6, '新富士',		((PANEL_NUM_X-3)/16)*10+2,	STATION_Y, 4, [35.1420718, 138.6633979], 0, 0],
 	[ 7, '静岡',		((PANEL_NUM_X-3)/16)*9+2,	STATION_Y, 4, [34.971698,  138.3890637], 0, 0],
@@ -48,6 +59,32 @@ var STATIONS = [			// 駅舎情報 ID,駅名,X
 	[15, '京都',		((PANEL_NUM_X-3)/16)*1+2,	STATION_Y, 4, [34.9851603, 135.7584294], 0, 0],
 	[16, '新大阪',		2,							STATION_Y, 8, [34.7338219, 135.5014056], 0, 0],
 ];
+STATIONS = calcStationsGridX(STATIONS);
+function calcStationsGridX(stations) {
+	var total_distance = 0;
+	var stations_distance = Array(STATIONS.length);
+	stations_distance[0] = 0;
+	for(i=1; i<STATIONS.length; i++) {
+		stations_distance[i] = calcDistance(stations[i][5], stations[i-1][5]);
+		total_distance += stations_distance[i];
+	}
+	console.log('total_distance: ' + total_distance);
+	var panel_distance = total_distance / (PANEL_NUM_X-3+1);
+	var station_distance = 0;
+	for(i=(STATIONS.length-2); i>0; i--) {
+		station_distance += stations_distance[i+1];
+		stations[i][2] = station_distance / panel_distance;
+	}
+	return stations;
+}
+function calcDistance(LatLng1, LatLng2) {
+	const R = Math.PI / 180;
+	return 6371 * Math.acos(
+			Math.cos(LatLng1[0]*R) * Math.cos(LatLng2[0]*R)
+			* Math.cos(LatLng2[1]*R - LatLng1[1]*R)
+			+ Math.sin(LatLng1[0]*R) * Math.sin(LatLng2[0]*R)
+	);
+}
 var DIAGRAM_DOWN = {		// 下り時刻表
 	'property': ['down', 20210701, 20210731],
 	'こだま707号': {
@@ -79,7 +116,7 @@ var TRAIN_STATUS = [	// balloon_show, message, station, next
 	[1, true, '{{train}}\n{{to}}行きです', 0, 1],
 	[2, true, '{{train}}\n間もなく発車します', 0, 1],
 	[3, true, '{{train}}\n次は{{next}}に止まります', 0, 1],
-	[4, true, '{{train}}', 0, 1],
+	[4, false, '{{train}}', 0, 1],
 	[5, true, '{{train}}\n間もなく{{next}}です', 0, 1],
 	[6, true, '{{train}}\n{{station}}です', 0, 1],
 	[7, true, '{{train}}\n{{station}}です', 0, 1],
@@ -98,18 +135,24 @@ var TRAIN_SOON_ARRIVAL = 8;
 var TRAIN_ARRIVAL      = 9;
 var ASSETS = {
 	image: {
-		'line':		'/static/images/線路01.gif',
-		'300up':	'/static/images/300系上り.gif',
-		'300down':	'/static/images/300系下り.gif',
+		'日本地図': STATIC_PATH + 'images/2528.png',
+		'line':		STATIC_PATH + 'images/線路01.gif',
+		'300up':	STATIC_PATH + 'images/300系上り.gif',
+		'300down':	STATIC_PATH + 'images/300系下り.gif',
+		'N700up':	STATIC_PATH + 'images/N700系上り.png',
+		'N700down':	STATIC_PATH + 'images/N700系下り.png',
 	},
 }
 
 // グローバル変数
 var game_app = null;
+var scene_main = null;
 var demo = 1;
-var startDate = getCurrentDate(1);
+var realDate = new Date()
+var startDate = getCurrentDate(1, 0);
 var currentDate = startDate;
 console.log('start:' + getCurrentTime(true));
+var update_freauency = 2.0;
 var stations = [];
 var trains = [];
 // グリッド
@@ -131,31 +174,42 @@ phina.define('MainScene', {
 				backgroundColor: 'lightgreen',	// 'transparent' or 'white',
 				// fill: 'transparent',	// 'white',
 			});
+			scene_main = this;
 			// グループ作成
-			var groupPanel = DisplayElement().addChildTo(this);
-			var groupStation = DisplayElement().addChildTo(this);
-			var groupLine = DisplayElement().addChildTo(this);
-			this.groupTrain = DisplayElement().addChildTo(this);
+			var back_panel = DisplayElement().addChildTo(this);
+			var group_panel = DisplayElement().addChildTo(this);
+			var group_station = DisplayElement().addChildTo(this);
+			var group_line = DisplayElement().addChildTo(this);
+			this.group_train = DisplayElement().addChildTo(this);
+			// 背景表示
+			this.back_image = Sprite('日本地図').addChildTo(back_panel).setRotation(8);
+			this.back_image.setPosition(1560, -10).setScale(12.9, 6.0);
 			// タイトル表示
-			this.title = Label('東海道新幹線運行シミュレーター').addChildTo(this);
-			this.title.x = grid.span(PANEL_NUM_X/2) + PANEL_OFFSET_X;
-			this.title.y = grid.span(1) + PANEL_OFFSET_Y;
-			this.date = Label(startDate.getFullYear()+'年'+('0'+(startDate.getMonth()+1)).slice(-2)+'月'+('0'+startDate.getDate()).slice(-2)+'日').addChildTo(this);
-			this.date.align = 'right';
-			this.date.x = grid.span(PANEL_NUM_X) + PANEL_OFFSET_X;
-			this.date.y = grid.span(2) + PANEL_OFFSET_Y;
-			this.time = Label((' '+startDate.getHours()).slice(-2)+'時'+(' '+startDate.getMinutes()).slice(-2)+'分').addChildTo(this);
-			this.time.align = 'right';
-			this.time.x = grid.span(PANEL_NUM_X) + PANEL_OFFSET_X;
-			this.time.y = grid.span(3) + PANEL_OFFSET_Y;
+			this.title = Label({
+				text: '東海道新幹線なんちゃって運行シミュレーター（試作版）',
+				x: grid.span(PANEL_NUM_X/2) + PANEL_OFFSET_X + 192,
+				y: grid.span(1) + PANEL_OFFSET_Y,
+			}).addChildTo(this);
+			this.date = Label({
+				text: startDate.getFullYear()+'年'+('0'+(startDate.getMonth()+1)).slice(-2)+'月'+('0'+startDate.getDate()).slice(-2)+'日',
+				x: grid.span(PANEL_NUM_X) + PANEL_OFFSET_X,
+				y: grid.span(2) + PANEL_OFFSET_Y,
+				align: 'right',
+			}).addChildTo(this);
+			this.time = Label({
+				text: (' '+startDate.getHours()).slice(-2)+'時'+(' '+startDate.getMinutes()).slice(-2)+'分',
+				x: grid.span(PANEL_NUM_X) + PANEL_OFFSET_X,
+				y: grid.span(3) + PANEL_OFFSET_Y,
+				align: 'right',
+			}).addChildTo(this);
 			// 列車数表示
 			this.train_count = Label('下り：0  上り：0').addChildTo(this);
-			this.train_count.x = grid.span(PANEL_NUM_X/2) + PANEL_OFFSET_X;
+			this.train_count.x = grid.span(PANEL_NUM_X/4*3) + PANEL_OFFSET_X;
 			this.train_count.y = grid.span(3) + PANEL_OFFSET_Y;
 
 			// 駅舎を表示する
 			for(i=0; i<STATIONS.length; i++) {
-				var station = Station(STATIONS[i], groupLine).addChildTo(groupStation);
+				var station = Station(STATIONS[i], group_line).addChildTo(group_station);
 				stations.push(station);
 			}
 
@@ -165,7 +219,7 @@ phina.define('MainScene', {
 				PANEL_NUM_Y.times(function(spanY) {
 					var yG = spanY + 1;
 					// パネル作成
-					var panel = Panel().addChildTo(groupPanel);
+					var panel = Panel().addChildTo(group_panel);
 					// Gridを利用して配置
 					// panel.setOrigin(0, 0);
 					panel.x = grid.span(xG) + PANEL_OFFSET_X;
@@ -177,10 +231,10 @@ phina.define('MainScene', {
 						panel.isLine = true;
 					}
 					if(panel.isLine) {
-						Sprite('line').addChildTo(groupLine).setPosition(panel.x - PANEL_SIZE/4, panel.y - PANEL_SIZE/2);
-						Sprite('line').addChildTo(groupLine).setPosition(panel.x + PANEL_SIZE/4, panel.y - PANEL_SIZE/2);
-						// Sprite('line').addChildTo(groupLine).setPosition(panel.x, panel.y);
-						// Sprite('line').addChildTo(groupLine).setPosition(panel.x + PANEL_SIZE/2, panel.y);
+						Sprite('line').addChildTo(group_line).setPosition(panel.x - PANEL_SIZE/4, panel.y - PANEL_SIZE/2);
+						Sprite('line').addChildTo(group_line).setPosition(panel.x + PANEL_SIZE/4, panel.y - PANEL_SIZE/2);
+						// Sprite('line').addChildTo(group_line).setPosition(panel.x, panel.y);
+						// Sprite('line').addChildTo(group_line).setPosition(panel.x + PANEL_SIZE/2, panel.y);
 					}
 				});
 			});
@@ -189,38 +243,25 @@ phina.define('MainScene', {
 			// のぞみの列車数：吹き出しの位置調整用
 			this.down_nozomi_count = 0;
 			this.up_nozomi_count = 0;
-/*
-			// 設定ボタン作成
-			var chkAndroid = navigator.userAgent.indexOf("Android") > 0;
-			var button = Button({
-				x: grid.span(PANEL_NUM_X) + PANEL_OFFSET_X + (GRID_SIZE/2)*3,	// x座標
-				y: grid.span(3) + PANEL_OFFSET_Y,	// y座標
-				width: GRID_SIZE*2,	// 横サイズ
-				height: GRID_SIZE,	// 縦サイズ
-				text: '設定',		// 表示文字
-				fontSize: 28,		// 文字サイズ
-				fontColor: 'black',	// 文字色
-				cornerRadius: 10,	// 角丸み
-				fill: 'silver',		// ボタン色
-				stroke: 'gray',		// 枠色
-				strokeWidth: 5,		// 枠太さ
-			}).addChildTo(this);
-			button.onpointend = function() {
-				// ボタンが押されたときの処理
-				document.getElementById('setup_dialog').style.visibility = 'visible';
-			}
-			button.onpointover = function(e){
-				// Android端末使用時のタップ遅延対策
-				if (!e.pointer.getPointing() && chkAndroid) {
-					this.onpointend();
-				}
-			}
-*/
+
+			// 設定パネル作成
+			show_setup_panel(this);
 		},
 		// 更新
 		update: function() {
 			// 現在時刻を更新
-			currentDate = getCurrentDate(0);
+			var cDate = getCurrentDate(0, 1);
+			var diff = cDate.getTime() - currentDate.getTime();
+			if(cDate.getFullYear() == currentDate.getFullYear()
+			&& cDate.getMonth() == currentDate.getMonth()
+			&& cDate.getDay() == currentDate.getDay()
+			&& cDate.getHours() == currentDate.getHours()
+			&& cDate.getMinutes() == currentDate.getMinutes()) {
+				// console.log('update pass: ' + diff + 'ms');
+				return;
+			}
+			realDate.setTime(new Date());
+			currentDate = cDate;
 			var cTime = getCurrentTime(true);
 			var hm = cTime.split(':');
 			this.time.text = hm[0]+'時'+hm[1]+'分';
@@ -236,7 +277,7 @@ phina.define('MainScene', {
 					this.down_nozomi_count++;
 				}
 				console.log('MainScene.update Train_down:' + DIAGRAM_DOWN[key]['property'].join(','));
-				Train_down(key, this.down_nozomi_count).addChildTo(this.groupTrain);
+				Train_down(key, this.down_nozomi_count).addChildTo(this.group_train);
 			}
 			// 上り列車を更新
 			for(let key in DIAGRAM_UP) {
@@ -249,10 +290,10 @@ phina.define('MainScene', {
 					this.up_nozomi_count++;
 				}
 				console.log('MainScene.update Train_up:' + DIAGRAM_UP[key]['property'].join(','));
-				Train_up(key, this.up_nozomi_count).addChildTo(this.groupTrain);
+				Train_up(key, this.up_nozomi_count).addChildTo(this.group_train);
 			}
 			// 列車数を更新
-			this.train_count.text = '下り：' + train_down_count + '  上り：' + train_up_count;
+			this.train_count.text = '下り：' + train_down_count + '本  上り：' + train_up_count + '本';
 		},
 });
 
@@ -299,15 +340,19 @@ phina.define('Train_down', {
 			this.name = name;
 			this.diagram = DIAGRAM_DOWN[this.name];
 			this.diagram['status'][0] = this;
-			DIAGRAM_DOWN[this.name]['status'][0] = this;
+			this.status = TRAIN_STATUS[TRAIN_OUTOF_RAIL];
+			this.cDate = currentDate;
 			// イメージ表示
 			this.x = grid.span(PANEL_NUM_X - 1) + PANEL_OFFSET_X;
 			this.y = grid.span(TRAIN_DOWN - 1) + PANEL_OFFSET_Y;
-			var sprite = Sprite('300down').addChildTo(this).origin.set(0.5, 0.5);
+			// var sprite = Sprite('300down').addChildTo(this).origin.set(0.5, 0.5);
+			this.train_image = Sprite('N700down').addChildTo(this).setPosition(-2, -10);
+			this.train_image.scaleX = 0.6;
+			this.train_image.scaleY = 0.6;
 			// テキスト入りフキダシ
 			var balloon_color = "khaki";	// khaki=#f0e68c
 			var tipProtrusion = 32;
-			var posY = 120;
+			var posY = 90;
 			if(this.name.substr(0, 3) == 'のぞみ') {
 				if((count % 2) == 1) {
 					tipProtrusion += 64;
@@ -332,14 +377,17 @@ phina.define('Train_down', {
 			this.balloon.fontFamily = 'sans-serif';
 			this.balloon.fontSize = 12;
 			// 列車位置調整：下り列車数
-			train_down_count++;
-			updateTrain(this, DIAGRAM_DOWN);
+			train_down_count += updateTrain(this, DIAGRAM_DOWN);
 		},
 		// 更新
 		update: function() {
 			// console.log('Train_down.update');
-			// 列車位置調整：下り列車数
-			train_down_count += updateTrain(this, DIAGRAM_DOWN);
+			var diff = currentDate.getTime() - this.cDate.getTime();
+			if((diff/1000) > update_freauency) {
+				this.cDate = currentDate;
+				// 列車位置調整：下り列車数
+				train_down_count += updateTrain(this, DIAGRAM_DOWN);
+			}
 		},
 });
 
@@ -358,14 +406,18 @@ phina.define('Train_up', {
 			this.name = name;
 			this.diagram = DIAGRAM_UP[this.name];
 			this.diagram['status'][0] = this;
-			DIAGRAM_UP[this.name]['status'][0] = this;
+			this.status = TRAIN_STATUS[TRAIN_OUTOF_RAIL];
+			this.cDate = currentDate;
 			// イメージ表示
 			this.y = grid.span(TRAIN_UP - 1) + PANEL_OFFSET_Y;
-			var sprite = Sprite('300up').addChildTo(this).origin.set(-1.0, 0.5);
+			// var sprite = Sprite('300up').addChildTo(this).origin.set(-1.0, 0.5);
+			this.train_image = Sprite('N700up').addChildTo(this).setPosition(46, -9);
+			this.train_image.scaleX = 0.6;
+			this.train_image.scaleY = 0.6;
 			// テキスト入りフキダシ
 			var balloon_color = "khaki";	// khaki=#f0e68c
 			var tipProtrusion = 32;
-			var posY = -96;
+			var posY = -106;
 			if(this.name.substr(0, 3) == 'のぞみ') {
 				if((count % 2) == 0) {
 					tipProtrusion += 64;
@@ -386,18 +438,21 @@ phina.define('Train_up', {
 				tipProtrusion: tipProtrusion,
 				tipBottomSize: 24,
 				bubbleFill: balloon_color,
-			}).addChildTo(this).setPosition(58, posY);
+			}).addChildTo(this).setPosition(46, posY);
 			this.balloon.fontFamily = 'sans-serif';
 			this.balloon.fontSize = 12;
 			// 列車位置調整：上り列車数
-			train_up_count++;
-			updateTrain(this, DIAGRAM_UP);
+			train_up_count += updateTrain(this, DIAGRAM_UP);
 		},
 		// 更新
 		update: function() {
 			// console.log('Train_up.update');
-			// 列車位置調整：上り列車数
-			train_up_count += updateTrain(this, DIAGRAM_UP);
+			var diff = currentDate.getTime() - this.cDate.getTime();
+			if((diff/1000) > update_freauency) {
+				this.cDate = currentDate;
+				// 列車位置調整：上り列車数
+				train_up_count += updateTrain(this, DIAGRAM_UP);
+			}
 		},
 });
 
@@ -406,7 +461,7 @@ phina.define('Station', {
 	// RectangleShapeを継承
 	superClass: 'RectangleShape',
 		// コンストラクタ
-		init: function(st, groupLine) {
+		init: function(st, group_line) {
 			var id = st[0];
 			var name = st[1];
 			var x = st[2];
@@ -414,8 +469,8 @@ phina.define('Station', {
 			var homes = st[4];
 			// 親クラス初期化
 			this.superInit({
-				width: STATION_SIZE,
-				height: STATION_SIZE*2,
+				width: STATION_SIZE[0],
+				height: STATION_SIZE[1],
 				fill: 'white',		// 塗りつぶし色
 				stroke: 'black',	// 枠の色
 				cornerRadius: 2,	// 角の丸み
@@ -424,52 +479,53 @@ phina.define('Station', {
 			this.y = grid.span(y) + PANEL_OFFSET_Y;
 			// 駅名表示
 			var label = Label(name.split('').join('\n')).addChildTo(this);
-			label.fontFamily = 'sans-serif';
+			// label.fontFamily = 'sans-serif';
 			label.fontSize = 26;
 			label.fill = 'black';
 			// ホームを表示
-			var home = Shape({
-				width: PANEL_SIZE,
-				height: PANEL_SIZE,
+			var home = RectangleShape({
+				width: PANEL_SIZE*1.5,
+				height: PANEL_SIZE*(homes+2) + 8,
+				fill: 'silver',
+				padding: 1,
 				stroke: 'black',
-				backgroundColor: 'peru',	// peru=#cd853f
-			}).addChildTo(this).setPosition(0, (LINE_POS_Y[0]-STATION_Y-1)*PANEL_SIZE);
+			}).addChildTo(this).setPosition(-2, (LINE_POS_Y[0]-STATION_Y-1)*PANEL_SIZE+15);
 			// パネルにホームを描画する
 			if(homes > 2) {
 				for(var i=1; i<(homes/2); i++) {
 					// 上り用
 					var xL = grid.span(x) + PANEL_OFFSET_X;
 					var yL = grid.span(LINE_POS_Y[0] - i - 1) + PANEL_OFFSET_Y;
-					Sprite('line').addChildTo(groupLine).setPosition(xL - PANEL_SIZE/4, yL - PANEL_SIZE/2);
-					Sprite('line').addChildTo(groupLine).setPosition(xL + PANEL_SIZE/4, yL - PANEL_SIZE/2);
+					Sprite('line').addChildTo(group_line).setPosition(xL - PANEL_SIZE/4, yL - PANEL_SIZE/2);
+					Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/4, yL - PANEL_SIZE/2);
 					if(id != 0) {
-						Sprite('line').addChildTo(groupLine).setPosition(xL + PANEL_SIZE/2, yL - PANEL_SIZE/2).setRotation(90);
-						Sprite('line').addChildTo(groupLine).setPosition(xL + PANEL_SIZE/2, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*1)).setRotation(90);
-//						Sprite('line').addChildTo(groupLine).setPosition(xL + PANEL_SIZE/2, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*2)).setRotation(90);
-//						Sprite('line').addChildTo(groupLine).setPosition(xL + PANEL_SIZE/2, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*3)).setRotation(90);
+						Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/2, yL - PANEL_SIZE/2).setRotation(90);
+						Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/2, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*1)).setRotation(90);
+//						Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/2, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*2)).setRotation(90);
+//						Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/2, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*3)).setRotation(90);
 					}
 					if(id != 16) {
-						Sprite('line').addChildTo(groupLine).setPosition(xL-(PANEL_SIZE/4)*3, yL - PANEL_SIZE/2).setRotation(90);
-						Sprite('line').addChildTo(groupLine).setPosition(xL-(PANEL_SIZE/4)*3, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*1)).setRotation(90);
-//						Sprite('line').addChildTo(groupLine).setPosition(xL-(PANEL_SIZE/4)*3, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*2)).setRotation(90);
-//						Sprite('line').addChildTo(groupLine).setPosition(xL-(PANEL_SIZE/4)*3, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*3)).setRotation(90);
+						Sprite('line').addChildTo(group_line).setPosition(xL-(PANEL_SIZE/4)*3, yL - PANEL_SIZE/2).setRotation(90);
+						Sprite('line').addChildTo(group_line).setPosition(xL-(PANEL_SIZE/4)*3, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*1)).setRotation(90);
+//						Sprite('line').addChildTo(group_line).setPosition(xL-(PANEL_SIZE/4)*3, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*2)).setRotation(90);
+//						Sprite('line').addChildTo(group_line).setPosition(xL-(PANEL_SIZE/4)*3, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*3)).setRotation(90);
 					}
 					// 下り用
 					xL = grid.span(x) + PANEL_OFFSET_X;
 					yL = grid.span(LINE_POS_Y[1] + i - 2) + PANEL_OFFSET_Y;
-					Sprite('line').addChildTo(groupLine).setPosition(xL - PANEL_SIZE/4, yL + PANEL_SIZE/2);
-					Sprite('line').addChildTo(groupLine).setPosition(xL + PANEL_SIZE/4, yL + PANEL_SIZE/2);
+					Sprite('line').addChildTo(group_line).setPosition(xL - PANEL_SIZE/4, yL + PANEL_SIZE/2);
+					Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/4, yL + PANEL_SIZE/2);
 					if(id != 0) {
-						Sprite('line').addChildTo(groupLine).setPosition(xL + PANEL_SIZE/2, yL + PANEL_SIZE/2 - PANEL_SIZE/4).setRotation(90);
-						Sprite('line').addChildTo(groupLine).setPosition(xL + PANEL_SIZE/2, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*1)).setRotation(90);
-//						Sprite('line').addChildTo(groupLine).setPosition(xL + PANEL_SIZE/2, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*2)).setRotation(90);
-//						Sprite('line').addChildTo(groupLine).setPosition(xL + PANEL_SIZE/2, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*3)).setRotation(90);
+						Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/2, yL + PANEL_SIZE/2 - PANEL_SIZE/4).setRotation(90);
+						Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/2, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*1)).setRotation(90);
+//						Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/2, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*2)).setRotation(90);
+//						Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/2, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*3)).setRotation(90);
 					}
 					if(id != 16) {
-						Sprite('line').addChildTo(groupLine).setPosition(xL-(PANEL_SIZE/4)*3, yL + PANEL_SIZE/2 - PANEL_SIZE/4).setRotation(90);
-						Sprite('line').addChildTo(groupLine).setPosition(xL-(PANEL_SIZE/4)*3, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*1)).setRotation(90);
-//						Sprite('line').addChildTo(groupLine).setPosition(xL-(PANEL_SIZE/4)*3, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*2)).setRotation(90);
-//						Sprite('line').addChildTo(groupLine).setPosition(xL-(PANEL_SIZE/4)*3, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*3)).setRotation(90);
+						Sprite('line').addChildTo(group_line).setPosition(xL-(PANEL_SIZE/4)*3, yL + PANEL_SIZE/2 - PANEL_SIZE/4).setRotation(90);
+						Sprite('line').addChildTo(group_line).setPosition(xL-(PANEL_SIZE/4)*3, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*1)).setRotation(90);
+//						Sprite('line').addChildTo(group_line).setPosition(xL-(PANEL_SIZE/4)*3, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*2)).setRotation(90);
+//						Sprite('line').addChildTo(group_line).setPosition(xL-(PANEL_SIZE/4)*3, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*3)).setRotation(90);
 					}
 				}
 			}
@@ -480,8 +536,8 @@ phina.define('Station', {
 phina.main(function() {
 	// アプリケーション生成
 	game_app = GameApp({
-		title: '東海道新幹線運行シミュレーター',
-		fps: 0.5,				// fps指定
+		title: '東海道新幹線なんちゃって運行シミュレーター（試作版）',
+		fps: 2.0,				// fps指定
 		startLabel: 'main',		// メインシーンから開始する
 		width: SCREEN_WIDTH + GRID_SIZE,
 		height: SCREEN_HEIGHT + GRID_SIZE,
@@ -491,11 +547,366 @@ phina.main(function() {
 	game_app.run();
 });
 
+// 設定パネルを表示する
+function show_setup_panel(scene) {
+	var setup_panel1 = Shape({
+		x: 16,
+		y: 16,
+		width: GRID_SIZE * 21,
+		height: GRID_SIZE * 2.5,
+		backgroundColor: 'white',
+		stroke: 'black',	// 枠の色
+		cornerRadius: 2,	// 角の丸み
+	}).addChildTo(scene).setOrigin(0, 0);
+	var setup_panel2 = Shape({
+		x: 16 + GRID_SIZE * 21 + 32,
+		y: 16 + (GRID_SIZE * 2.5)/2,
+		width: GRID_SIZE * 12,
+		height: (GRID_SIZE * 2.5)/2,
+		backgroundColor: 'white',
+		stroke: 'black',	// 枠の色
+		cornerRadius: 2,	// 角の丸み
+	}).addChildTo(scene).setOrigin(0, 0);
+	var chkAndroid = navigator.userAgent.indexOf("Android") > 0;
+	// 更新頻度
+	var label_updfreq_label = Label({
+		text: '更新頻度：1分=    秒',
+		x: 6,
+		y: 24,
+		fontSize: 28,
+	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+	var label_updfreq_value = Label({
+		text: '' + update_freauency,
+		x: 6 + 16*13,
+		y: 24,
+		fontSize: 28,
+	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+	var button_updfreq_minus = Button({
+		x: 6 + 16*18,
+		y: 24,
+		width: 64,	// 横サイズ
+		height: 32,	// 縦サイズ
+		text: '－',	// 表示文字
+		fontSize: 28,		// 文字サイズ
+		fontColor: 'black',	// 文字色
+		cornerRadius: 10,	// 角丸み
+		backgroundColor: 'transparent',
+		fill: 'silver',		// ボタン色
+		stroke: 'gray',		// 枠色
+		strokeWidth: 5,		// 枠太さ
+	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+	var button_updfreq_plus = Button({
+		x: 6 + 16*18 + 16*5,
+		y: 24,
+		width: 64,	// 横サイズ
+		height: 32,	// 縦サイズ
+		text: '＋',	// 表示文字
+		fontSize: 28,		// 文字サイズ
+		fontColor: 'black',	// 文字色
+		cornerRadius: 10,	// 角丸み
+		backgroundColor: 'transparent',
+		fill: 'silver',		// ボタン色
+		stroke: 'gray',		// 枠色
+		strokeWidth: 5,		// 枠太さ
+	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+	var button_updfreq_second = Button({
+		x: 6 + 16*18 + 16*5 + 16*5,
+		y: 24,
+		width: 80,	// 横サイズ
+		height: 32,	// 縦サイズ
+		text: '1秒',	// 表示文字
+		fontSize: 24,		// 文字サイズ
+		fontColor: 'black',	// 文字色
+		cornerRadius: 10,	// 角丸み
+		backgroundColor: 'transparent',
+		fill: 'silver',		// ボタン色
+		stroke: 'gray',		// 枠色
+		strokeWidth: 5,		// 枠太さ
+	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+	var button_updfreq_real = Button({
+		x: 6 + 16*18 + 16*5 + 16*5 + 16*6,
+		y: 24 + ((70-24)/2+1),
+		width: 112,	// 横サイズ
+		height: 80,	// 縦サイズ
+		text: '',	// 表示文字
+		fontSize: 24,		// 文字サイズ
+		fontColor: 'black',	// 文字色
+		cornerRadius: 10,	// 角丸み
+		backgroundColor: 'transparent',
+		fill: 'silver',		// ボタン色
+		stroke: 'gray',		// 枠色
+		strokeWidth: 5,		// 枠太さ
+	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+	Label({
+		text: '実時間\n現在日時',
+		x: 64,
+		fontSize: 24,
+	}).addChildTo(button_updfreq_real);
+	button_updfreq_minus.onclick = function() {
+		// －ボタンが押されたときの処理
+		if(update_freauency <= 1.0) {
+			alert('更新頻度を1秒未満に設定することはできません。');
+			return;
+		}
+		if(confirm('更新頻度を更新しますか？：1分=' + (update_freauency-1.0) + '秒')) {
+			update_freauency -= 1.0;
+			demo = 0;
+			if(update_freauency != 60.0) {
+				demo = 1;
+			}
+			label_updfreq_value.text = '' + update_freauency;
+			console.log('accept updfreq_minus, ' + update_freauency + '秒');
+			scene_main.update();
+		}
+	}
+	button_updfreq_minus.onpointend = function(e) {
+		// Android端末使用時のタップ遅延対策
+		if (!e.pointer.getPointing() && chkAndroid) {
+			this.onclick();
+		}
+	}
+	button_updfreq_minus.onpointover = function(e){
+		// Android端末使用時のタップ遅延対策
+		if (!e.pointer.getPointing() && chkAndroid) {
+			this.onclick();
+		}
+	}
+	button_updfreq_plus.onclick = function() {
+		// ＋ボタンが押されたときの処理
+		if(confirm('更新頻度を更新しますか？：1分=' + (update_freauency+1.0) + '秒')) {
+			update_freauency += 1.0;
+			demo = 0;
+			if(update_freauency != 60.0) {
+				demo = 1;
+			}
+			label_updfreq_value.text = '' + update_freauency;
+			console.log('accept updfreq_plus, ' + update_freauency + '秒');
+			scene_main.update();
+		}
+	}
+	button_updfreq_plus.onpointend = function(e) {
+		// Android端末使用時のタップ遅延対策
+		if (!e.pointer.getPointing() && chkAndroid) {
+			this.onpointend();
+		}
+	}
+	button_updfreq_plus.onpointover = function(e){
+		// Android端末使用時のタップ遅延対策
+		if (!e.pointer.getPointing() && chkAndroid) {
+			this.onpointend();
+		}
+	}
+	button_updfreq_second.onclick = function() {
+		// 1秒ボタンが押されたときの処理
+		if(confirm('更新頻度を更新しますか？：1分=1秒')) {
+			update_freauency = 1.0;
+			demo = 1;
+			label_updfreq_value.text = '' + update_freauency;
+			console.log('accept updfreq_second, ' + update_freauency + '秒');
+			scene_main.update();
+		}
+	}
+	button_updfreq_second.onpointend = function(e) {
+		// Android端末使用時のタップ遅延対策
+		if (!e.pointer.getPointing() && chkAndroid) {
+			this.onpointend();
+		}
+	}
+	button_updfreq_second.onpointover = function(e){
+		// Android端末使用時のタップ遅延対策
+		if (!e.pointer.getPointing() && chkAndroid) {
+			this.onpointend();
+		}
+	}
+	button_updfreq_real.onclick = function() {
+		// 現在時刻＆実時間ボタンが押されたときの処理
+		var curDate = new Date();
+		var dt = curDate.getFullYear()+'年'+('0'+(curDate.getMonth()+1)).slice(-2)+'月'+('0'+curDate.getDate()).slice(-2)+'日';
+		var tm = (' '+curDate.getHours()).slice(-2)+'時'+(' '+curDate.getMinutes()).slice(-2)+'分';
+		if(confirm('更新頻度を更新しますか？：実時間(60秒)＆現在時刻：' + dt + ' ' + tm)) {
+			demo = 0;
+			update_freauency = 60.0;
+			currentDate = new Date(curDate.getTime() - 60000);
+			startDate = currentDate;
+			scene.date.text = startDate.getFullYear()+'年'+('0'+(startDate.getMonth()+1)).slice(-2)+'月'+('0'+startDate.getDate()).slice(-2)+'日';
+			scene.time.text = (' '+startDate.getHours()).slice(-2)+'時'+(' '+startDate.getMinutes()).slice(-2)+'分';
+			label_updfreq_value.text = '' + update_freauency;
+			console.log('accept updfreq_real, ' + update_freauency + '秒, ' + scene.date.text + ' ' + scene.time.text);
+			scene_main.update();
+		}
+	}
+	button_updfreq_real.onpointend = function(e) {
+		// Android端末使用時のタップ遅延対策
+		if (!e.pointer.getPointing() && chkAndroid) {
+			this.onpointend();
+		}
+	}
+	button_updfreq_real.onpointover = function(e){
+		// Android端末使用時のタップ遅延対策
+		if (!e.pointer.getPointing() && chkAndroid) {
+			this.onpointend();
+		}
+	}
+	// 時刻設定
+	var label_time = Label({
+		text: '日時設定：',
+		x: 6,
+		y: 70,
+		fontSize: 28,
+	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+	var button_date_update = Label({
+		x: 6 + 16*9,
+		y: 70,
+		text: '日付変更',	// 表示文字
+		fontSize: 24,		// 文字サイズ
+		fontColor: 'black',	// 文字色
+		fill: 'silver',		// ボタン色
+		stroke: 'gray',		// 枠色
+	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+/*	var button_date_update = Button({
+		x: 6 + 16*9,
+		y: 70,
+		width: 128,	// 横サイズ
+		height: 32,	// 縦サイズ
+		text: '日付変更',	// 表示文字
+		fontSize: 24,		// 文字サイズ
+		fontColor: 'black',	// 文字色
+		cornerRadius: 10,	// 角丸み
+		backgroundColor: 'transparent',
+		fill: 'silver',		// ボタン色
+		stroke: 'gray',		// 枠色
+		strokeWidth: 5,		// 枠太さ
+	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+*/
+	var button_time_update = Button({
+		x: 6 + 16*9 + 16*8,
+		y: 70,
+		width: 128,	// 横サイズ
+		height: 32,	// 縦サイズ
+		text: '時刻変更',	// 表示文字
+		fontSize: 24,		// 文字サイズ
+		fontColor: 'black',	// 文字色
+		cornerRadius: 10,	// 角丸み
+		backgroundColor: 'transparent',
+		fill: 'silver',		// ボタン色
+		stroke: 'gray',		// 枠色
+		strokeWidth: 5,		// 枠太さ
+	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+/*
+	var button_time_real = Button({
+		x: 6 + 16*9 + 16*8 + 16*8 + 16,
+		y: 70,
+		width: 128,	// 横サイズ
+		height: 32,	// 縦サイズ
+		text: '現在日時',	// 表示文字
+		fontSize: 24,		// 文字サイズ
+		fontColor: 'black',	// 文字色
+		cornerRadius: 10,	// 角丸み
+		backgroundColor: 'transparent',
+		fill: 'silver',		// ボタン色
+		stroke: 'gray',		// 枠色
+		strokeWidth: 5,		// 枠太さ
+	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+*/
+	button_time_update.onclick = function() {
+		// 時刻変更ボタンが押されたときの処理
+		answer = prompt('時刻を入力して下さい：', getCurrentTime(false));
+		if(answer) {
+			if(setCurrentTime(answer)) {
+				console.log('accept time_update, ' + answer);
+				scene_main.update();
+			} else {
+				alert('時刻の形式に誤りがあるます。' + answer);
+			}
+		}
+	}
+	button_time_update.onpointend = function(e) {
+		// Android端末使用時のタップ遅延対策
+		if (!e.pointer.getPointing() && chkAndroid) {
+			this.onpointend();
+		}
+	}
+	button_time_update.onpointover = function(e){
+		// Android端末使用時のタップ遅延対策
+		if (!e.pointer.getPointing() && chkAndroid) {
+			this.onpointend();
+		}
+	}
+/*
+	button_time_real.onclick = function() {
+		// 現在日時ボタンが押されたときの処理
+		var curDate = new Date();
+		var dt = curDate.getFullYear()+'年'+('0'+(curDate.getMonth()+1)).slice(-2)+'月'+('0'+curDate.getDate()).slice(-2)+'日';
+		var tm = (' '+curDate.getHours()).slice(-2)+'時'+(' '+curDate.getMinutes()).slice(-2)+'分';
+		if(confirm('現在日時に変更しますか？：' + dt + ' ' + tm)) {
+			currentDate = curDate;
+			startDate = currentDate;
+			scene.date.text = startDate.getFullYear()+'年'+('0'+(startDate.getMonth()+1)).slice(-2)+'月'+('0'+startDate.getDate()).slice(-2)+'日';
+			scene.time.text = (' '+startDate.getHours()).slice(-2)+'時'+(' '+startDate.getMinutes()).slice(-2)+'分';
+			console.log('accept time_real, ' + scene.date.text + ' ' + scene.time.text);
+		}
+	}
+	button_time_real.onpointend = function(e) {
+		// Android端末使用時のタップ遅延対策
+		if (!e.pointer.getPointing() && chkAndroid) {
+			this.onpointend();
+		}
+	}
+	button_time_real.onpointover = function(e){
+		// Android端末使用時のタップ遅延対策
+		if (!e.pointer.getPointing() && chkAndroid) {
+			this.onpointend();
+		}
+	}
+*/
+	var button_balloon_show = Button({
+		x: 6,
+		y: 28,
+		text: '〇走行時バルーン表示',	// 表示文字
+		width: 32*11,	// 横サイズ
+		height: 32,	// 縦サイズ
+		fontSize: 28,		// 文字サイズ
+		fontColor: 'black',	// 文字色
+		cornerRadius: 10,	// 角丸み
+		backgroundColor: 'transparent',
+		fill: 'silver',		// ボタン色
+		stroke: 'gray',		// 枠色
+		strokeWidth: 5,		// 枠太さ
+	}).addChildTo(setup_panel2).setOrigin(0.0, 0.5);
+	button_balloon_show.onclick = function() {
+		// 走行時バルーン表示ボタンが押されたときの処理
+		if(confirm('走行時のバルーン表示を変更しますか？')) {
+			if(this.text.substr(0, 1) == '〇') {
+				this.text = '●走行時バルーン表示';
+				TRAIN_STATUS[TRAIN_RUNNING][1] = true;
+			} else {
+				this.text = '〇走行時バルーン表示';
+				TRAIN_STATUS[TRAIN_RUNNING][1] = false;
+			}
+			console.log('accept balloon_show, ' + this.text);
+			scene_main.update();
+		}
+	}
+	button_balloon_show.onpointend = function(e) {
+		// Android端末使用時のタップ遅延対策
+		if (!e.pointer.getPointing() && chkAndroid) {
+			this.onpointend();
+		}
+	}
+	button_balloon_show.onpointover = function(e){
+		// Android端末使用時のタップ遅延対策
+		if (!e.pointer.getPointing() && chkAndroid) {
+			this.onpointend();
+		}
+	}
+	return true;
+}
 
+// 以降は普通のJavaScript
 // 時刻表を取得する
 function get_timetable() {
 	console.log('get_timetable() start.');
-	var get_url = '/cache/timetables.json';
+	var get_url = CACHE_PATH + 'timetables.json';
 	var tt_json = '';
 	var xhr = new XMLHttpRequest();
 	xhr.onreadystatechange = function() {
@@ -540,17 +951,16 @@ function updateTrain(train, diagram) {
 	var cTime = getCurrentTime(false);
 	if(train.diagram['property'][1] > cTime
 	|| train.diagram['property'][2] < cTime) {
-		if(train.diagram['status'][0] != null) {
-			diagram[train.name]['status'][0] = null;
-			train.diagram['status'][0] = null;
+		// 走行時間外
+		if(train.status[0] != TRAIN_OUTOF_RAIL) {
 			train.status = TRAIN_STATUS[TRAIN_OUTOF_RAIL];
 			train.balloon.hide();
 			train.hide();
 			rc = -1;
 		}
 	} else {
-		if(train.diagram['status'][0] == null) {
-			train.diagram['status'][0] = train;
+		if(train.status[0] == TRAIN_OUTOF_RAIL) {
+			train.status = TRAIN_STATUS[TRAIN_INTO_RAIL];
 			train.balloon.hide();
 			train.show();
 			rc = 1;
@@ -578,15 +988,20 @@ function updateTrain(train, diagram) {
 }
 
 // 現在日時を取得する
-function getCurrentDate(start) {
+function getCurrentDate(start, update) {
 	var cDate = new Date();
 	if(demo == 1) {
 		if(start == 1) {
 			cDate.setHours(5);
 			cDate.setMinutes(53);
 		} else {
-			cDate = currentDate;
-			cDate.setMinutes(cDate.getMinutes() + 1);
+			var diff = cDate.getTime() - realDate.getTime();
+			cDate.setTime(currentDate.getTime());
+			if((diff/1000) >= update_freauency) {
+				if(update == 1) {
+					cDate.setMinutes(cDate.getMinutes() + 1);
+				}
+			}
 		}
 	}
 	return cDate;
@@ -602,6 +1017,34 @@ function getCurrentTime(sec) {
 		return ('0'+currentDate.getHours()).slice(-2)
 				+':'+('0'+currentDate.getMinutes()).slice(-2);
 	}
+}
+
+// 現在時刻を更新する
+function setCurrentTime(tm) {
+	var tm_array = tm.split(':');
+	if(tm_array.length != 2 && tm_array.length != 3) {
+		// alert('時刻の形式に誤りがあるます。' + time);
+		return false;
+	}
+	if(parseInt(tm_array[0]) < 0 || parseInt(tm_array[0]) > 23) {
+		// alert('時刻の形式に誤りがあるます。' + time);
+		return false;
+	}
+	if(parseInt(tm_array[1]) < 0 || parseInt(tm_array[1]) > 59) {
+		// alert('時刻の形式に誤りがあるます。' + time);
+		return false;
+	}
+	if(tm_array.length == 3
+	&& parseInt(tm_array[2]) < 0 || parseInt(tm_array[2]) > 59) {
+		// alert('時刻の形式に誤りがあるます。' + time);
+		return false;
+	}
+	currentDate.setHours(parseInt(tm_array[0]));
+	currentDate.setMinutes(parseInt(tm_array[1]));
+	if(tm_array.length == 3) {
+		currentDate.setSeconds(parseInt(tm_array[2]));
+	}
+	return true;
 }
 
 // 時刻の加算
@@ -683,7 +1126,7 @@ function calcTrainPosition(train) {
 				train.status[4] = train.diagram['timeLine'][i+1][0];
 			}
 			if(train.diagram['property'][0] == 'up') {
-				xPos = stations[st_id].x - (STATION_SIZE/2) - (GRID_SIZE/2);
+				xPos = stations[st_id].x - (STATION_SIZE[0]/2) - (GRID_SIZE/2);
 			} else {
 				xPos = stations[st_id].x;
 			}
@@ -727,7 +1170,7 @@ function calcTrainPosition(train) {
 						cTime
 				);
 				if(train.diagram['property'][0] == 'up') {
-					xPos += stations[st_id].x - (STATION_SIZE/2) - (GRID_SIZE/2);
+					xPos += stations[st_id].x - (STATION_SIZE[0]/2) - (GRID_SIZE/2);
 				} else {
 					xPos = stations[st_id].x - xPos;
 				}
