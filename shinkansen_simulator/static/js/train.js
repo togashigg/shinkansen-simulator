@@ -570,7 +570,7 @@ function show_setup_panel(scene) {
 	var setup_panel2 = Shape({
 		x: 0 + GRID_SIZE * 21 + 32,
 		y: 0 + (GRID_SIZE * 2) - 8,
-		width: GRID_SIZE * 12,
+		width: GRID_SIZE * 11 + 16,
 		height: GRID_SIZE + 8,
 		backgroundColor: 'white',
 		stroke: 'black',	// 枠の色
@@ -602,7 +602,7 @@ function show_setup_panel(scene) {
 		fill: 'silver',		// ボタン色
 		stroke: 'gray',		// 枠色
 		strokeWidth: 5,		// 枠太さ
-	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5).setInteractive(true);;
 	var button_updfreq_plus = Button({
 		x: 6 + 16*18 + 16*5,
 		y: 32,
@@ -616,7 +616,7 @@ function show_setup_panel(scene) {
 		fill: 'silver',		// ボタン色
 		stroke: 'gray',		// 枠色
 		strokeWidth: 5,		// 枠太さ
-	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5).setInteractive(true);
 	var button_updfreq_second = Button({
 		x: 6 + 16*18 + 16*5 + 16*5,
 		y: 32,
@@ -644,7 +644,7 @@ function show_setup_panel(scene) {
 		fill: 'silver',		// ボタン色
 		stroke: 'gray',		// 枠色
 		strokeWidth: 5,		// 枠太さ
-	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5).setInteractive(true);
 	Label({
 		text: '実時間\n現在日時',
 		x: 64,
@@ -674,6 +674,7 @@ function show_setup_panel(scene) {
 			scene_main.update();
 		}
 	}
+/*
 	button_updfreq_minus.onpointend = function(e) {
 		// Android端末使用時のタップ遅延対策
 		if (!e.pointer.getPointing() && isAndroid) {
@@ -686,6 +687,7 @@ function show_setup_panel(scene) {
 			this.onclick();
 		}
 	}
+*/
 	button_updfreq_plus.onclick = function() {
 		// ＋ボタンが押されたときの処理
 		answer = true;
@@ -703,6 +705,7 @@ function show_setup_panel(scene) {
 			scene_main.update();
 		}
 	}
+/*
 	button_updfreq_plus.onpointend = function(e) {
 		// Android端末使用時のタップ遅延対策
 		if (!e.pointer.getPointing() && isAndroid) {
@@ -715,6 +718,7 @@ function show_setup_panel(scene) {
 			this.onclick();
 		}
 	}
+*/
 	button_updfreq_second.onclick = function() {
 		// 1秒ボタンが押されたときの処理
 		answer = true;
@@ -729,6 +733,7 @@ function show_setup_panel(scene) {
 			scene_main.update();
 		}
 	}
+/*
 	button_updfreq_second.onpointend = function(e) {
 		// Android端末使用時のタップ遅延対策
 		if (!e.pointer.getPointing() && isAndroid) {
@@ -741,6 +746,7 @@ function show_setup_panel(scene) {
 			this.onclick();
 		}
 	}
+*/
 	button_updfreq_real.onclick = function() {
 		// 現在時刻＆実時間ボタンが押されたときの処理
 		var curDate = new Date();
@@ -762,6 +768,7 @@ function show_setup_panel(scene) {
 			scene_main.update();
 		}
 	}
+/*
 	button_updfreq_real.onpointend = function(e) {
 		// Android端末使用時のタップ遅延対策
 		if (!e.pointer.getPointing() && isAndroid) {
@@ -774,6 +781,7 @@ function show_setup_panel(scene) {
 			this.onclick();
 		}
 	}
+*/
 	// 時刻設定
 	var label_time = Label({
 		text: '日時設定：',
@@ -817,7 +825,7 @@ function show_setup_panel(scene) {
 			fill: 'silver',		// ボタン色
 			stroke: 'gray',		// 枠色
 			strokeWidth: 5,		// 枠太さ
-		}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+		}).addChildTo(setup_panel1).setOrigin(0.0, 0.5).setInteractive(true);
 		var button_time_update = Button({
 			text: '時刻変更',	// 表示文字
 			x: 6 + 16*9 + 16*9,
@@ -845,6 +853,7 @@ function show_setup_panel(scene) {
 				scene.date.text = currentDate.getFullYear()+'年'+('0'+(currentDate.getMonth()+1)).slice(-2)+'月'+('0'+currentDate.getDate()).slice(-2)+'日';
 			}
 		}
+/*
 		button_date_update.onpointend = function(e) {
 			// Android端末使用時のタップ遅延対策
 			if (!e.pointer.getPointing() && isAndroid) {
@@ -857,7 +866,7 @@ function show_setup_panel(scene) {
 				this.onclick();
 			}
 		}
-
+*/
 		button_time_update.onclick = function() {
 			// 時刻変更ボタンが押されたときの処理
 			if(prompt('時刻を入力して下さい(hh:mm)：', getCurrentTime(false))) {
@@ -869,6 +878,7 @@ function show_setup_panel(scene) {
 				}
 			}
 		}
+/*
 		button_time_update.onpointend = function(e) {
 			// Android端末使用時のタップ遅延対策
 			if (!e.pointer.getPointing() && isAndroid) {
@@ -881,6 +891,7 @@ function show_setup_panel(scene) {
 				this.onclick();
 			}
 		}
+*/
 	}
 	var button_balloon_show = Button({
 		x: 6,
@@ -895,7 +906,7 @@ function show_setup_panel(scene) {
 		fill: 'silver',		// ボタン色
 		stroke: 'gray',		// 枠色
 		strokeWidth: 5,		// 枠太さ
-	}).addChildTo(setup_panel2).setOrigin(0.0, 0.5);
+	}).addChildTo(setup_panel2).setOrigin(0.0, 0.5).setInteractive(true);
 	button_balloon_show.onclick = function() {
 		// 走行時バルーン表示ボタンが押されたときの処理
 		answer = true;
@@ -920,6 +931,7 @@ function show_setup_panel(scene) {
 			scene_main.update();
 		}
 	}
+/*
 	button_balloon_show.onpointend = function(e) {
 		// Android端末使用時のタップ遅延対策
 		if (!e.pointer.getPointing() && isAndroid) {
@@ -932,6 +944,7 @@ function show_setup_panel(scene) {
 			this.onclick();
 		}
 	}
+*/
 	return true;
 }
 
