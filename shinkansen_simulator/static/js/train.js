@@ -284,7 +284,7 @@ phina.define('MainScene', {
 					this.down_nozomi_count++;
 				}
 				console.log('MainScene.update Train_down:' + DIAGRAM_DOWN[key]['property'].join(','));
-				Train_down(key, this.down_nozomi_count).addChildTo(this.group_train);
+				trains.push(Train_down(key, this.down_nozomi_count).addChildTo(this.group_train));
 			}
 			// 上り列車を更新
 			for(let key in DIAGRAM_UP) {
@@ -297,7 +297,7 @@ phina.define('MainScene', {
 					this.up_nozomi_count++;
 				}
 				console.log('MainScene.update Train_up:' + DIAGRAM_UP[key]['property'].join(','));
-				Train_up(key, this.up_nozomi_count).addChildTo(this.group_train);
+				trains.push(Train_up(key, this.up_nozomi_count).addChildTo(this.group_train));
 			}
 			// 列車数を更新
 			this.train_count.text = '下り：' + train_down_count + '本  上り：' + train_up_count + '本';
@@ -556,7 +556,7 @@ phina.main(function() {
 
 // 設定パネルを表示する
 function show_setup_panel(scene) {
-	var chkAndroid = navigator.userAgent.indexOf("Android") > 0;
+	var isAndroid = navigator.userAgent.indexOf("Android") > 0;
 	var answer = false;
 	var setup_panel1 = Shape({
 		x: 0,
@@ -653,14 +653,14 @@ function show_setup_panel(scene) {
 	button_updfreq_minus.onclick = function() {
 		// －ボタンが押されたときの処理
 		if(update_freauency <= 1.0) {
-			if(! chkAndroid) {
+			if(! isAndroid) {
 				alert('更新頻度を1秒未満に設定することはできません。');
 			}
 			console.log('更新頻度を1秒未満に設定することはできません。');
 			return;
 		}
 		answer = true;
-		if(! chkAndroid) {
+		if(! isAndroid) {
 			answer = confirm('更新頻度を更新しますか？：1分=' + (update_freauency-1.0) + '秒');
 		}
 		if(answer) {
@@ -676,20 +676,20 @@ function show_setup_panel(scene) {
 	}
 	button_updfreq_minus.onpointend = function(e) {
 		// Android端末使用時のタップ遅延対策
-		if (!e.pointer.getPointing() && chkAndroid) {
+		if (!e.pointer.getPointing() && isAndroid) {
 			this.onclick();
 		}
 	}
 	button_updfreq_minus.onpointover = function(e){
 		// Android端末使用時のタップ遅延対策
-		if (!e.pointer.getPointing() && chkAndroid) {
+		if (!e.pointer.getPointing() && isAndroid) {
 			this.onclick();
 		}
 	}
 	button_updfreq_plus.onclick = function() {
 		// ＋ボタンが押されたときの処理
 		answer = true;
-		if(! chkAndroid) {
+		if(! isAndroid) {
 			answer = confirm('更新頻度を更新しますか？：1分=' + (update_freauency+1.0) + '秒');
 		}
 		if(answer) {
@@ -705,20 +705,20 @@ function show_setup_panel(scene) {
 	}
 	button_updfreq_plus.onpointend = function(e) {
 		// Android端末使用時のタップ遅延対策
-		if (!e.pointer.getPointing() && chkAndroid) {
-			this.onpointend();
+		if (!e.pointer.getPointing() && isAndroid) {
+			this.onclick();
 		}
 	}
 	button_updfreq_plus.onpointover = function(e){
 		// Android端末使用時のタップ遅延対策
-		if (!e.pointer.getPointing() && chkAndroid) {
-			this.onpointend();
+		if (!e.pointer.getPointing() && isAndroid) {
+			this.onclick();
 		}
 	}
 	button_updfreq_second.onclick = function() {
 		// 1秒ボタンが押されたときの処理
 		answer = true;
-		if(! chkAndroid) {
+		if(! isAndroid) {
 			answer = confirm('更新頻度を更新しますか？：1分=1秒');
 		}
 		if(answer) {
@@ -731,14 +731,14 @@ function show_setup_panel(scene) {
 	}
 	button_updfreq_second.onpointend = function(e) {
 		// Android端末使用時のタップ遅延対策
-		if (!e.pointer.getPointing() && chkAndroid) {
-			this.onpointend();
+		if (!e.pointer.getPointing() && isAndroid) {
+			this.onclick();
 		}
 	}
 	button_updfreq_second.onpointover = function(e){
 		// Android端末使用時のタップ遅延対策
-		if (!e.pointer.getPointing() && chkAndroid) {
-			this.onpointend();
+		if (!e.pointer.getPointing() && isAndroid) {
+			this.onclick();
 		}
 	}
 	button_updfreq_real.onclick = function() {
@@ -747,7 +747,7 @@ function show_setup_panel(scene) {
 		var dt = curDate.getFullYear()+'年'+('0'+(curDate.getMonth()+1)).slice(-2)+'月'+('0'+curDate.getDate()).slice(-2)+'日';
 		var tm = (' '+curDate.getHours()).slice(-2)+'時'+(' '+curDate.getMinutes()).slice(-2)+'分';
 		answer = true;
-		if(! chkAndroid) {
+		if(! isAndroid) {
 			answer = confirm('更新頻度を更新しますか？：実時間(60秒)＆現在時刻：' + dt + ' ' + tm);
 		}
 		if(answer) {
@@ -764,14 +764,14 @@ function show_setup_panel(scene) {
 	}
 	button_updfreq_real.onpointend = function(e) {
 		// Android端末使用時のタップ遅延対策
-		if (!e.pointer.getPointing() && chkAndroid) {
-			this.onpointend();
+		if (!e.pointer.getPointing() && isAndroid) {
+			this.onclick();
 		}
 	}
 	button_updfreq_real.onpointover = function(e){
 		// Android端末使用時のタップ遅延対策
-		if (!e.pointer.getPointing() && chkAndroid) {
-			this.onpointend();
+		if (!e.pointer.getPointing() && isAndroid) {
+			this.onclick();
 		}
 	}
 	// 時刻設定
@@ -781,7 +781,7 @@ function show_setup_panel(scene) {
 		y: 32 + 38 + 14,
 		fontSize: 28,
 	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
-	if(chkAndroid) {
+	if(isAndroid) {
 		// androidでは動作が停止してしまう！
 		var button_date_update = Label({
 			text: '日付変更',	// 表示文字
@@ -792,9 +792,9 @@ function show_setup_panel(scene) {
 			fill: 'silver',		// ボタン色
 			stroke: 'gray',		// 枠色
 		}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
-		var button_time_update = Lavel({
+		var button_time_update = Label({
 			text: '時刻変更',	// 表示文字
-			x: 6 + 16*9 + 16*10,
+			x: 6 + 16*9 + 16*9,
 			y: 32 + 38 + 14,
 			width: 16*8,	// 横サイズ
 			height: 32,	// 縦サイズ
@@ -847,14 +847,14 @@ function show_setup_panel(scene) {
 		}
 		button_date_update.onpointend = function(e) {
 			// Android端末使用時のタップ遅延対策
-			if (!e.pointer.getPointing() && chkAndroid) {
-				this.onpointend();
+			if (!e.pointer.getPointing() && isAndroid) {
+				this.onclick();
 			}
 		}
 		button_date_update.onpointover = function(e){
 			// Android端末使用時のタップ遅延対策
-			if (!e.pointer.getPointing() && chkAndroid) {
-				this.onpointend();
+			if (!e.pointer.getPointing() && isAndroid) {
+				this.onclick();
 			}
 		}
 
@@ -871,14 +871,14 @@ function show_setup_panel(scene) {
 		}
 		button_time_update.onpointend = function(e) {
 			// Android端末使用時のタップ遅延対策
-			if (!e.pointer.getPointing() && chkAndroid) {
-				this.onpointend();
+			if (!e.pointer.getPointing() && isAndroid) {
+				this.onclick();
 			}
 		}
 		button_time_update.onpointover = function(e){
 			// Android端末使用時のタップ遅延対策
-			if (!e.pointer.getPointing() && chkAndroid) {
-				this.onpointend();
+			if (!e.pointer.getPointing() && isAndroid) {
+				this.onclick();
 			}
 		}
 	}
@@ -899,7 +899,7 @@ function show_setup_panel(scene) {
 	button_balloon_show.onclick = function() {
 		// 走行時バルーン表示ボタンが押されたときの処理
 		answer = true;
-		if(! chkAndroid) {
+		if(! isAndroid) {
 			answer = confirm('走行時のバルーン表示を変更しますか？');
 		}
 		if(answer) {
@@ -911,19 +911,25 @@ function show_setup_panel(scene) {
 				TRAIN_STATUS[TRAIN_RUNNING][1] = false;
 			}
 			console.log('accept balloon_show, ' + this.text);
+			for(i=0; i<trains.length; i++) {
+				if(trains[i].status[0] == TRAIN_RUNNING) {
+					trains[i].cDate.setFullYear(trains[i].cDate.getFullYear()-1);
+					trains[i].update();
+				}
+			}
 			scene_main.update();
 		}
 	}
 	button_balloon_show.onpointend = function(e) {
 		// Android端末使用時のタップ遅延対策
-		if (!e.pointer.getPointing() && chkAndroid) {
-			this.onpointend();
+		if (!e.pointer.getPointing() && isAndroid) {
+			this.onclick();
 		}
 	}
 	button_balloon_show.onpointover = function(e){
 		// Android端末使用時のタップ遅延対策
-		if (!e.pointer.getPointing() && chkAndroid) {
-			this.onpointend();
+		if (!e.pointer.getPointing() && isAndroid) {
+			this.onclick();
 		}
 	}
 	return true;
