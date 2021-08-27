@@ -1,5 +1,5 @@
 // train,js: 東海道新幹線なんちゃって運行シミュレーター（試作版）
-// COPYRIGHT (C) N.Togashi
+// Copyright (C) N.Togashi 2021
 // phina.js docs：https://phinajs.com/docs/
 // phina.js Tips集：https://qiita.com/alkn203/items/bca3222f6b409382fe20
 // [phina.js]オブジェクトの操作 -位置、移動、衝突・クリック判定など- について：https://horohorori.com/memo_phina_js/about_object2d/
@@ -185,8 +185,8 @@ phina.define('MainScene', {
 			this.back_image.setPosition(1560, -10).setScale(12.9, 6.0);
 			// 謝辞を表示
 			Label({
-				text: '謝辞：Phina.js、phina-talkbubble.js、encoding.js、JR東海時刻表、日本地図(素材Library.com)を使わせて頂きました。',
-				x: grid.span(PANEL_NUM_X/2+1),
+				text: 'Copyright (C) N.Togashi 2021  謝辞：Phina.js、phina-talkbubble.js、encoding.js、JR東海時刻表、日本地図(素材Library.com)を使わせて頂きました。',
+				x: grid.span(PANEL_NUM_X/2) + 64,
 				y: grid.span(PANEL_NUM_Y) + 16,
 				fontSize: 24,
 			}).addChildTo(back_panel);
@@ -270,6 +270,7 @@ phina.define('MainScene', {
 			currentDate = cDate;
 			var cTime = getCurrentTime(true);
 			var hm = cTime.split(':');
+			this.date.text = currentDate.getFullYear()+'年'+('0'+(currentDate.getMonth()+1)).slice(-2)+'月'+('0'+currentDate.getDate()).slice(-2)+'日';
 			this.time.text = hm[0]+'時'+hm[1]+'分';
 			console.log('MainScene.update: ' + cTime);
 			// 下り列車を更新
@@ -555,43 +556,44 @@ phina.main(function() {
 
 // 設定パネルを表示する
 function show_setup_panel(scene) {
+	var chkAndroid = navigator.userAgent.indexOf("Android") > 0;
+	var answer = false;
 	var setup_panel1 = Shape({
-		x: 16,
-		y: 16,
+		x: 0,
+		y: 0,
 		width: GRID_SIZE * 21,
-		height: GRID_SIZE * 2.5,
+		height: GRID_SIZE * 3,
 		backgroundColor: 'white',
 		stroke: 'black',	// 枠の色
 		cornerRadius: 2,	// 角の丸み
 	}).addChildTo(scene).setOrigin(0, 0);
 	var setup_panel2 = Shape({
-		x: 16 + GRID_SIZE * 21 + 32,
-		y: 16 + (GRID_SIZE * 2.5)/2,
+		x: 0 + GRID_SIZE * 21 + 32,
+		y: 0 + (GRID_SIZE * 2) - 8,
 		width: GRID_SIZE * 12,
-		height: (GRID_SIZE * 2.5)/2,
+		height: GRID_SIZE + 8,
 		backgroundColor: 'white',
 		stroke: 'black',	// 枠の色
 		cornerRadius: 2,	// 角の丸み
 	}).addChildTo(scene).setOrigin(0, 0);
-	var chkAndroid = navigator.userAgent.indexOf("Android") > 0;
 	// 更新頻度
 	var label_updfreq_label = Label({
 		text: '更新頻度：1分=    秒',
 		x: 6,
-		y: 24,
+		y: 32,
 		fontSize: 28,
 	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
 	var label_updfreq_value = Label({
 		text: '' + update_freauency,
 		x: 6 + 16*13,
-		y: 24,
+		y: 32,
 		fontSize: 28,
 	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
 	var button_updfreq_minus = Button({
 		x: 6 + 16*18,
-		y: 24,
+		y: 32,
 		width: 64,	// 横サイズ
-		height: 32,	// 縦サイズ
+		height: 38,	// 縦サイズ
 		text: '－',	// 表示文字
 		fontSize: 28,		// 文字サイズ
 		fontColor: 'black',	// 文字色
@@ -603,9 +605,9 @@ function show_setup_panel(scene) {
 	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
 	var button_updfreq_plus = Button({
 		x: 6 + 16*18 + 16*5,
-		y: 24,
+		y: 32,
 		width: 64,	// 横サイズ
-		height: 32,	// 縦サイズ
+		height: 38,	// 縦サイズ
 		text: '＋',	// 表示文字
 		fontSize: 28,		// 文字サイズ
 		fontColor: 'black',	// 文字色
@@ -617,9 +619,9 @@ function show_setup_panel(scene) {
 	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
 	var button_updfreq_second = Button({
 		x: 6 + 16*18 + 16*5 + 16*5,
-		y: 24,
+		y: 32,
 		width: 80,	// 横サイズ
-		height: 32,	// 縦サイズ
+		height: 38,	// 縦サイズ
 		text: '1秒',	// 表示文字
 		fontSize: 24,		// 文字サイズ
 		fontColor: 'black',	// 文字色
@@ -631,9 +633,9 @@ function show_setup_panel(scene) {
 	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
 	var button_updfreq_real = Button({
 		x: 6 + 16*18 + 16*5 + 16*5 + 16*6,
-		y: 24 + ((70-24)/2+1),
+		y: 32 + ((70-24)/2+1),
 		width: 112,	// 横サイズ
-		height: 80,	// 縦サイズ
+		height: 92,	// 縦サイズ
 		text: '',	// 表示文字
 		fontSize: 24,		// 文字サイズ
 		fontColor: 'black',	// 文字色
@@ -651,10 +653,17 @@ function show_setup_panel(scene) {
 	button_updfreq_minus.onclick = function() {
 		// －ボタンが押されたときの処理
 		if(update_freauency <= 1.0) {
-			alert('更新頻度を1秒未満に設定することはできません。');
+			if(! chkAndroid) {
+				alert('更新頻度を1秒未満に設定することはできません。');
+			}
+			console.log('更新頻度を1秒未満に設定することはできません。');
 			return;
 		}
-		if(confirm('更新頻度を更新しますか？：1分=' + (update_freauency-1.0) + '秒')) {
+		answer = true;
+		if(! chkAndroid) {
+			answer = confirm('更新頻度を更新しますか？：1分=' + (update_freauency-1.0) + '秒');
+		}
+		if(answer) {
 			update_freauency -= 1.0;
 			demo = 0;
 			if(update_freauency != 60.0) {
@@ -679,7 +688,11 @@ function show_setup_panel(scene) {
 	}
 	button_updfreq_plus.onclick = function() {
 		// ＋ボタンが押されたときの処理
-		if(confirm('更新頻度を更新しますか？：1分=' + (update_freauency+1.0) + '秒')) {
+		answer = true;
+		if(! chkAndroid) {
+			answer = confirm('更新頻度を更新しますか？：1分=' + (update_freauency+1.0) + '秒');
+		}
+		if(answer) {
 			update_freauency += 1.0;
 			demo = 0;
 			if(update_freauency != 60.0) {
@@ -704,7 +717,11 @@ function show_setup_panel(scene) {
 	}
 	button_updfreq_second.onclick = function() {
 		// 1秒ボタンが押されたときの処理
-		if(confirm('更新頻度を更新しますか？：1分=1秒')) {
+		answer = true;
+		if(! chkAndroid) {
+			answer = confirm('更新頻度を更新しますか？：1分=1秒');
+		}
+		if(answer) {
 			update_freauency = 1.0;
 			demo = 1;
 			label_updfreq_value.text = '' + update_freauency;
@@ -729,7 +746,11 @@ function show_setup_panel(scene) {
 		var curDate = new Date();
 		var dt = curDate.getFullYear()+'年'+('0'+(curDate.getMonth()+1)).slice(-2)+'月'+('0'+curDate.getDate()).slice(-2)+'日';
 		var tm = (' '+curDate.getHours()).slice(-2)+'時'+(' '+curDate.getMinutes()).slice(-2)+'分';
-		if(confirm('更新頻度を更新しますか？：実時間(60秒)＆現在時刻：' + dt + ' ' + tm)) {
+		answer = true;
+		if(! chkAndroid) {
+			answer = confirm('更新頻度を更新しますか？：実時間(60秒)＆現在時刻：' + dt + ' ' + tm);
+		}
+		if(answer) {
 			demo = 0;
 			update_freauency = 60.0;
 			currentDate = new Date(curDate.getTime() - 60000);
@@ -757,118 +778,114 @@ function show_setup_panel(scene) {
 	var label_time = Label({
 		text: '日時設定：',
 		x: 6,
-		y: 70,
+		y: 32 + 38 + 14,
 		fontSize: 28,
 	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
-	var button_date_update = Label({
-		x: 6 + 16*9,
-		y: 70,
-		text: '日付変更',	// 表示文字
-		fontSize: 24,		// 文字サイズ
-		fontColor: 'black',	// 文字色
-		fill: 'silver',		// ボタン色
-		stroke: 'gray',		// 枠色
-	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
-/*	var button_date_update = Button({
-		x: 6 + 16*9,
-		y: 70,
-		width: 128,	// 横サイズ
-		height: 32,	// 縦サイズ
-		text: '日付変更',	// 表示文字
-		fontSize: 24,		// 文字サイズ
-		fontColor: 'black',	// 文字色
-		cornerRadius: 10,	// 角丸み
-		backgroundColor: 'transparent',
-		fill: 'silver',		// ボタン色
-		stroke: 'gray',		// 枠色
-		strokeWidth: 5,		// 枠太さ
-	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
-*/
-	var button_time_update = Button({
-		x: 6 + 16*9 + 16*8,
-		y: 70,
-		width: 128,	// 横サイズ
-		height: 32,	// 縦サイズ
-		text: '時刻変更',	// 表示文字
-		fontSize: 24,		// 文字サイズ
-		fontColor: 'black',	// 文字色
-		cornerRadius: 10,	// 角丸み
-		backgroundColor: 'transparent',
-		fill: 'silver',		// ボタン色
-		stroke: 'gray',		// 枠色
-		strokeWidth: 5,		// 枠太さ
-	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
-/*
-	var button_time_real = Button({
-		x: 6 + 16*9 + 16*8 + 16*8 + 16,
-		y: 70,
-		width: 128,	// 横サイズ
-		height: 32,	// 縦サイズ
-		text: '現在日時',	// 表示文字
-		fontSize: 24,		// 文字サイズ
-		fontColor: 'black',	// 文字色
-		cornerRadius: 10,	// 角丸み
-		backgroundColor: 'transparent',
-		fill: 'silver',		// ボタン色
-		stroke: 'gray',		// 枠色
-		strokeWidth: 5,		// 枠太さ
-	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
-*/
-	button_time_update.onclick = function() {
-		// 時刻変更ボタンが押されたときの処理
-		answer = prompt('時刻を入力して下さい：', getCurrentTime(false));
-		if(answer) {
-			if(setCurrentTime(answer)) {
-				console.log('accept time_update, ' + answer);
-				scene_main.update();
-			} else {
-				alert('時刻の形式に誤りがあるます。' + answer);
+	if(chkAndroid) {
+		// androidでは動作が停止してしまう！
+		var button_date_update = Label({
+			text: '日付変更',	// 表示文字
+			x: 6 + 16*9,
+			y: 32 + 38 + 14,
+			fontSize: 24,		// 文字サイズ
+			fontColor: 'black',	// 文字色
+			fill: 'silver',		// ボタン色
+			stroke: 'gray',		// 枠色
+		}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+		var button_time_update = Lavel({
+			text: '時刻変更',	// 表示文字
+			x: 6 + 16*9 + 16*10,
+			y: 32 + 38 + 14,
+			width: 16*8,	// 横サイズ
+			height: 32,	// 縦サイズ
+			fontSize: 24,		// 文字サイズ
+			fontColor: 'black',	// 文字色
+			fill: 'silver',		// ボタン色
+			stroke: 'gray',		// 枠色
+		}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+	} else {
+		var button_date_update = Button({
+			text: '日付変更',	// 表示文字
+			x: 6 + 16*9,
+			y: 32 + 38 + 14,
+			width: 16*8,	// 横サイズ
+			height: 38,	// 縦サイズ
+			fontSize: 24,		// 文字サイズ
+			fontColor: 'black',	// 文字色
+			cornerRadius: 10,	// 角丸み
+			backgroundColor: 'transparent',
+			fill: 'silver',		// ボタン色
+			stroke: 'gray',		// 枠色
+			strokeWidth: 5,		// 枠太さ
+		}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+		var button_time_update = Button({
+			text: '時刻変更',	// 表示文字
+			x: 6 + 16*9 + 16*9,
+			y: 32 + 38 + 14,
+			width: 16*8,	// 横サイズ
+			height: 38,	// 縦サイズ
+			fontSize: 24,		// 文字サイズ
+			fontColor: 'black',	// 文字色
+			cornerRadius: 10,	// 角丸み
+			backgroundColor: 'transparent',
+			fill: 'silver',		// ボタン色
+			stroke: 'gray',		// 枠色
+			strokeWidth: 5,		// 枠太さ
+		}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
+		button_date_update.onclick = function() {
+			// 日付ボタンが押されたときの処理
+			answer = prompt('日付を入力して下さい(yyyy-mm-dd)：', currentDate.getFullYear()+'-'+(currentDate.getMonth()+1)+'-'+currentDate.getDate());
+			if(answer) {
+				if(setCurrentDate(answer)) {
+					console.log('accept date_update, ' + answer);
+					scene_main.update();
+				} else {
+					alert('日付の形式に誤りがあるます。' + answer);
+				}
+				scene.date.text = currentDate.getFullYear()+'年'+('0'+(currentDate.getMonth()+1)).slice(-2)+'月'+('0'+currentDate.getDate()).slice(-2)+'日';
+			}
+		}
+		button_date_update.onpointend = function(e) {
+			// Android端末使用時のタップ遅延対策
+			if (!e.pointer.getPointing() && chkAndroid) {
+				this.onpointend();
+			}
+		}
+		button_date_update.onpointover = function(e){
+			// Android端末使用時のタップ遅延対策
+			if (!e.pointer.getPointing() && chkAndroid) {
+				this.onpointend();
+			}
+		}
+
+		button_time_update.onclick = function() {
+			// 時刻変更ボタンが押されたときの処理
+			if(prompt('時刻を入力して下さい(hh:mm)：', getCurrentTime(false))) {
+				if(setCurrentTime(answer)) {
+					console.log('accept time_update, ' + answer);
+					scene_main.update();
+				} else {
+					alert('時刻の形式に誤りがあるます。' + answer);
+				}
+			}
+		}
+		button_time_update.onpointend = function(e) {
+			// Android端末使用時のタップ遅延対策
+			if (!e.pointer.getPointing() && chkAndroid) {
+				this.onpointend();
+			}
+		}
+		button_time_update.onpointover = function(e){
+			// Android端末使用時のタップ遅延対策
+			if (!e.pointer.getPointing() && chkAndroid) {
+				this.onpointend();
 			}
 		}
 	}
-	button_time_update.onpointend = function(e) {
-		// Android端末使用時のタップ遅延対策
-		if (!e.pointer.getPointing() && chkAndroid) {
-			this.onpointend();
-		}
-	}
-	button_time_update.onpointover = function(e){
-		// Android端末使用時のタップ遅延対策
-		if (!e.pointer.getPointing() && chkAndroid) {
-			this.onpointend();
-		}
-	}
-/*
-	button_time_real.onclick = function() {
-		// 現在日時ボタンが押されたときの処理
-		var curDate = new Date();
-		var dt = curDate.getFullYear()+'年'+('0'+(curDate.getMonth()+1)).slice(-2)+'月'+('0'+curDate.getDate()).slice(-2)+'日';
-		var tm = (' '+curDate.getHours()).slice(-2)+'時'+(' '+curDate.getMinutes()).slice(-2)+'分';
-		if(confirm('現在日時に変更しますか？：' + dt + ' ' + tm)) {
-			currentDate = curDate;
-			startDate = currentDate;
-			scene.date.text = startDate.getFullYear()+'年'+('0'+(startDate.getMonth()+1)).slice(-2)+'月'+('0'+startDate.getDate()).slice(-2)+'日';
-			scene.time.text = (' '+startDate.getHours()).slice(-2)+'時'+(' '+startDate.getMinutes()).slice(-2)+'分';
-			console.log('accept time_real, ' + scene.date.text + ' ' + scene.time.text);
-		}
-	}
-	button_time_real.onpointend = function(e) {
-		// Android端末使用時のタップ遅延対策
-		if (!e.pointer.getPointing() && chkAndroid) {
-			this.onpointend();
-		}
-	}
-	button_time_real.onpointover = function(e){
-		// Android端末使用時のタップ遅延対策
-		if (!e.pointer.getPointing() && chkAndroid) {
-			this.onpointend();
-		}
-	}
-*/
 	var button_balloon_show = Button({
 		x: 6,
 		y: 28,
-		text: '〇走行時バルーン表示',	// 表示文字
+		text: '□ 走行時のバルーン表示',	// 表示文字
 		width: 32*11,	// 横サイズ
 		height: 32,	// 縦サイズ
 		fontSize: 28,		// 文字サイズ
@@ -881,12 +898,16 @@ function show_setup_panel(scene) {
 	}).addChildTo(setup_panel2).setOrigin(0.0, 0.5);
 	button_balloon_show.onclick = function() {
 		// 走行時バルーン表示ボタンが押されたときの処理
-		if(confirm('走行時のバルーン表示を変更しますか？')) {
-			if(this.text.substr(0, 1) == '〇') {
-				this.text = '●走行時バルーン表示';
+		answer = true;
+		if(! chkAndroid) {
+			answer = confirm('走行時のバルーン表示を変更しますか？');
+		}
+		if(answer) {
+			if(this.text.substr(0, 1) == '□') {
+				this.text = 'レ 走行時のバルーン表示';
 				TRAIN_STATUS[TRAIN_RUNNING][1] = true;
 			} else {
-				this.text = '〇走行時バルーン表示';
+				this.text = '□ 走行時のバルーン表示';
 				TRAIN_STATUS[TRAIN_RUNNING][1] = false;
 			}
 			console.log('accept balloon_show, ' + this.text);
@@ -1013,6 +1034,31 @@ function getCurrentDate(start, update) {
 	return cDate;
 }
 
+// 現在日付を変更する
+function setCurrentDate(dt) {
+	var dt_array = dt.split('-');
+	if(dt_array.length != 3) {
+		// alert('日付の形式に誤りがあるます。' + dt);
+		return false;
+	}
+	if(parseInt(dt_array[0]) < 1900 || parseInt(dt_array[0]) > 2099) {
+		// alert('日付の形式に誤りがあるます。' + dt);
+		return false;
+	}
+	if(parseInt(dt_array[1]) < 1 || parseInt(dt_array[1]) > 12) {
+		// alert('日付の形式に誤りがあるます。' + dt);
+		return false;
+	}
+	if(parseInt(dt_array[2]) < 1 || parseInt(dt_array[2]) > 31) {
+		// alert('日付の形式に誤りがあるます。' + dt);
+		return false;
+	}
+	currentDate.setFullYear(parseInt(dt_array[0]));
+	currentDate.setMonth(parseInt((dt_array[1]-1)));
+	currentDate.setDate(parseInt(dt_array[2]));
+	return true;
+}
+
 // 現在時刻を取得する
 function getCurrentTime(sec) {
 	if(sec) {
@@ -1029,20 +1075,20 @@ function getCurrentTime(sec) {
 function setCurrentTime(tm) {
 	var tm_array = tm.split(':');
 	if(tm_array.length != 2 && tm_array.length != 3) {
-		// alert('時刻の形式に誤りがあるます。' + time);
+		// alert('時刻の形式に誤りがあるます。' + tm);
 		return false;
 	}
 	if(parseInt(tm_array[0]) < 0 || parseInt(tm_array[0]) > 23) {
-		// alert('時刻の形式に誤りがあるます。' + time);
+		// alert('時刻の形式に誤りがあるます。' + tm);
 		return false;
 	}
 	if(parseInt(tm_array[1]) < 0 || parseInt(tm_array[1]) > 59) {
-		// alert('時刻の形式に誤りがあるます。' + time);
+		// alert('時刻の形式に誤りがあるます。' + tm);
 		return false;
 	}
 	if(tm_array.length == 3
 	&& parseInt(tm_array[2]) < 0 || parseInt(tm_array[2]) > 59) {
-		// alert('時刻の形式に誤りがあるます。' + time);
+		// alert('時刻の形式に誤りがあるます。' + tm);
 		return false;
 	}
 	currentDate.setHours(parseInt(tm_array[0]));
