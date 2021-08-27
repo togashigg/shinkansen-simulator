@@ -185,7 +185,7 @@ phina.define('MainScene', {
 			this.back_image.setPosition(1560, -10).setScale(12.9, 6.0);
 			// 謝辞を表示
 			Label({
-				text: 'Copyright (C) N.Togashi 2021  謝辞：Phina.js、phina-talkbubble.js、encoding.js、JR東海時刻表、日本地図(素材Library.com)を使わせて頂きました。',
+				text: 'Copyright (C) N.Togashi 2021  謝辞：heroku、Phina.js、phina-talkbubble.js、encoding.js、JR東海時刻表、素材Library.com(日本地図)等を使わせて頂きました。',
 				x: grid.span(PANEL_NUM_X/2) + 64,
 				y: grid.span(PANEL_NUM_Y) + 16,
 				fontSize: 24,
