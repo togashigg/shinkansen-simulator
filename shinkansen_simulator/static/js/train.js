@@ -208,6 +208,13 @@ phina.define('MainScene', {
 				y: grid.span(3) + PANEL_OFFSET_Y,
 				align: 'right',
 			}).addChildTo(this);
+			this.limitations = Label({
+				text: '※平日ダイヤのみ対応！',
+				fill: 'red',
+				x: grid.span(PANEL_NUM_X/16*13) + PANEL_OFFSET_X,
+				y: grid.span(2) + PANEL_OFFSET_Y,
+				align: 'right',
+			}).addChildTo(this);
 			// 列車数表示
 			this.train_count = Label('下り：0  上り：0').addChildTo(this);
 			this.train_count.x = grid.span(PANEL_NUM_X/4*3) + PANEL_OFFSET_X;
