@@ -156,6 +156,7 @@ phina.define('MainScene', {
 				backgroundColor: 'lightgreen',	// 'transparent' or 'white',
 				// fill: 'transparent',	// 'white',
 			});
+			this.force_update = false;
 			scene_main = this;
 			// グループ作成
 			var back_panel = DisplayElement().addChildTo(this);
@@ -192,9 +193,11 @@ phina.define('MainScene', {
 				align: 'right',
 			}).addChildTo(this);
 			this.limitations = Label({
-				text: '※運転日指定の列車は未対応！',
+				text: '※運転日指定の列車もまあまあ動作します！',
 				fill: 'red',
-				x: grid.span(PANEL_NUM_X/2+19) + PANEL_OFFSET_X,
+				fontSize: 20,
+				fontWeight: "bold",
+				x: grid.span(PANEL_NUM_X/2+18) + PANEL_OFFSET_X,
 				y: grid.span(2) + PANEL_OFFSET_Y,
 				align: 'right',
 			}).addChildTo(this);
@@ -244,7 +247,7 @@ phina.define('MainScene', {
 			// 時刻表表示用バルーン
 			this.balloon_timetable_down= phina.ui.TalkBubbleLabel({
 				text: '',
-				fontSize: 24,
+				fontSize: 22,
 				tipDirection: 'top',
 				tipProtrusion: 0,
 				tipBottomSize: 32,
@@ -253,7 +256,7 @@ phina.define('MainScene', {
 			this.balloon_timetable_down.hide();
 			this.balloon_timetable_up = phina.ui.TalkBubbleLabel({
 				text: '',
-				fontSize: 24,
+				fontSize: 22,
 				tipDirection: 'top',
 				tipProtrusion: 0,
 				tipBottomSize: 32,
@@ -275,14 +278,16 @@ phina.define('MainScene', {
 			// 現在時刻を更新
 			var cDate = getCurrentDate(0, 1);
 			var diff = cDate.getTime() - currentDate.getTime();
-			if(cDate.getFullYear() == currentDate.getFullYear()
-			&& cDate.getMonth() == currentDate.getMonth()
-			&& cDate.getDay() == currentDate.getDay()
-			&& cDate.getHours() == currentDate.getHours()
-			&& cDate.getMinutes() == currentDate.getMinutes()) {
+			if(this.force_update == false
+			&& (cDate.getFullYear() == currentDate.getFullYear()
+			 && cDate.getMonth() == currentDate.getMonth()
+			 && cDate.getDay() == currentDate.getDay()
+			 && cDate.getHours() == currentDate.getHours()
+			 && cDate.getMinutes() == currentDate.getMinutes())) {
 				// console.log('update pass: ' + diff + 'ms');
 				return;
 			}
+			this.force_update = false;
 			realDate.setTime(new Date());
 			currentDate = cDate;
 			var cTime = getCurrentTime(true);
@@ -370,6 +375,7 @@ phina.define('Train_down', {
 			this.diagram['status'][0] = this;
 			this.status = TRAIN_STATUS[TRAIN_OUTOF_RAIL];
 			this.cDate = currentDate;
+			this.force_update = false;
 			// イメージ表示
 			this.x = grid.span(PANEL_NUM_X - 1) + PANEL_OFFSET_X;
 			this.y = grid.span(TRAIN_DOWN - 1) + PANEL_OFFSET_Y;
@@ -428,7 +434,8 @@ phina.define('Train_down', {
 		update: function() {
 			// console.log('Train_down.update');
 			var diff = currentDate.getTime() - this.cDate.getTime();
-			if((diff/1000) > update_freauency) {
+			if(this.force_update || (diff/1000) > update_freauency) {
+				this.force_update = false;
 				this.cDate = currentDate;
 				// 列車位置調整：下り列車数
 				train_down_count += updateTrain(this, DIAGRAM_DOWN);
@@ -453,6 +460,7 @@ phina.define('Train_up', {
 			this.diagram['status'][0] = this;
 			this.status = TRAIN_STATUS[TRAIN_OUTOF_RAIL];
 			this.cDate = currentDate;
+			this.force_update = false;
 			// イメージ表示
 			this.y = grid.span(TRAIN_UP - 1) + PANEL_OFFSET_Y;
 			// var sprite = Sprite('300up').addChildTo(this).origin.set(-1.0, 0.5);
@@ -510,7 +518,8 @@ phina.define('Train_up', {
 		update: function() {
 			// console.log('Train_up.update');
 			var diff = currentDate.getTime() - this.cDate.getTime();
-			if((diff/1000) > update_freauency) {
+			if(this.force_update || (diff/1000) > update_freauency) {
+				this.force_update = false;
 				this.cDate = currentDate;
 				// 列車位置調整：上り列車数
 				train_up_count += updateTrain(this, DIAGRAM_UP);
@@ -738,6 +747,7 @@ function show_setup_panel(scene) {
 			}
 			label_updfreq_value.text = update_freauency + '秒';
 			// console.log('accept updfreq_minus, ' + update_freauency + '秒');
+			scene_main.force_update = true;
 			scene_main.update();
 		}
 	}
@@ -755,6 +765,7 @@ function show_setup_panel(scene) {
 			}
 			label_updfreq_value.text = update_freauency + '秒';
 			// console.log('accept updfreq_plus, ' + update_freauency + '秒');
+			scene_main.force_update = true;
 			scene_main.update();
 		}
 	}
@@ -769,6 +780,7 @@ function show_setup_panel(scene) {
 			demo = 1;
 			label_updfreq_value.text = update_freauency + '秒';
 			// console.log('accept updfreq_second, ' + update_freauency + '秒');
+			scene_main.force_update = true;
 			scene_main.update();
 		}
 	}
@@ -790,6 +802,13 @@ function show_setup_panel(scene) {
 			scene.time.text = (' '+startDate.getHours()).slice(-2)+'時'+(' '+startDate.getMinutes()).slice(-2)+'分';
 			label_updfreq_value.text = update_freauency + '秒';
 			// console.log('accept updfreq_real, ' + update_freauency + '秒, ' + scene.date.text + ' ' + scene.time.text);
+			for(i=0; i<trains.length; i++) {
+				if(trains[i].status[0] != TRAIN_OUTOF_RAIL) {
+					trains[i].force_update = true;
+					trains[i].update();
+				}
+			}
+			scene_main.force_update = true;
 			scene_main.update();
 		}
 	}
@@ -858,6 +877,13 @@ function show_setup_panel(scene) {
 				if(setCurrentDate(answer)) {
 					// console.log('accept date_update, ' + answer);
 					demo = 1;
+					for(i=0; i<trains.length; i++) {
+						if(trains[i].status[0] != TRAIN_OUTOF_RAIL) {
+							trains[i].force_update = true;
+							trains[i].update();
+						}
+					}
+					scene_main.force_update = true;
 					scene_main.update();
 				} else {
 					alert('日付の形式に誤りがあります。' + answer);
@@ -872,6 +898,13 @@ function show_setup_panel(scene) {
 				if(setCurrentTime(answer)) {
 					// console.log('accept time_update, ' + answer);
 					demo = 1;
+					for(i=0; i<trains.length; i++) {
+						if(trains[i].status[0] != TRAIN_OUTOF_RAIL) {
+							trains[i].force_update = true;
+							trains[i].update();
+						}
+					}
+					scene_main.force_update = true;
 					scene_main.update();
 				} else {
 					alert('時刻の形式に誤りがあります。' + answer);
@@ -909,11 +942,12 @@ function show_setup_panel(scene) {
 			}
 			// console.log('accept balloon_show, ' + this.text);
 			for(i=0; i<trains.length; i++) {
-				if(trains[i].status[0] == TRAIN_RUNNING) {
-					trains[i].cDate.setFullYear(trains[i].cDate.getFullYear()-1);
+				if(trains[i].status[0] != TRAIN_OUTOF_RAIL) {
+					trains[i].force_update = true;
 					trains[i].update();
 				}
 			}
+			scene_main.force_update = true;
 			scene_main.update();
 		}
 	}
@@ -955,14 +989,16 @@ function is_operating_datetime(diagram, cDate, cTime) {
 	var operation = null;
 	var suspension = null;
 	var cDate_str = cDate.getFullYear() + ('0'+(cDate.getMonth()+1)).slice(-2) + ('0'+cDate.getDate()).slice(-2);
-	if('運転日' in diagram['remarks']) {
-		if(diagram['remarks']['運転日'].length > 0) {
-			operation = (diagram['remarks']['運転日'].indexOf(cDate_str) >= 0);
+	if('remarks' in diagram) {
+		if('運転日' in diagram['remarks']) {
+			if(diagram['remarks']['運転日'].length > 0) {
+				operation = (diagram['remarks']['運転日'].indexOf(cDate_str) >= 0);
+			}
 		}
-	}
-	if('運休日' in diagram['remarks']) {
-		if(diagram['remarks']['運休日'].length > 0) {
-			suspension = (diagram['remarks']['運休日'].indexOf(cDate_str) >= 0);
+		if('運休日' in diagram['remarks']) {
+			if(diagram['remarks']['運休日'].length > 0) {
+				suspension = (diagram['remarks']['運休日'].indexOf(cDate_str) >= 0);
+			}
 		}
 	}
 	//             suspension
