@@ -176,9 +176,15 @@ phina.define('MainScene', {
 			}).addChildTo(back_panel);
 			// タイトル表示
 			this.title = Label({
-				text: PROGRAM_TITLE + ' ' + PROGRAM_VERSION + '   時刻表：' + DIAGRAM_VERSION,
-				x: grid.span(PANEL_NUM_X/2) + PANEL_OFFSET_X + 32*10,
+				text: PROGRAM_TITLE + ' ' + PROGRAM_VERSION,
+				x: grid.span(PANEL_NUM_X/2) + PANEL_OFFSET_X + 32*5,
 				y: grid.span(1) + PANEL_OFFSET_Y,
+			}).addChildTo(this);
+			this.diagram_version = Label({
+				text: '時刻表：' + DIAGRAM_VERSION,
+				x: grid.span(PANEL_NUM_X) + PANEL_OFFSET_X,
+				y: grid.span(1) + PANEL_OFFSET_Y,
+				align: 'right',
 			}).addChildTo(this);
 			this.date = Label({
 				text: startDate.getFullYear()+'年'+('0'+(startDate.getMonth()+1)).slice(-2)+'月'+('0'+startDate.getDate()).slice(-2)+'日(' + WEEKDAYS[startDate.getDay()] + ')',
@@ -239,6 +245,7 @@ phina.define('MainScene', {
 			});
 			// 時刻表を取得する
 			get_timetable();
+			this.diagram_version.text = '時刻表：' + DIAGRAM_DOWN['property'][1] + '版';
 			// のぞみの列車数：吹き出しの位置調整用
 			this.down_nozomi_count = 0;
 			this.up_nozomi_count = 0;
@@ -1041,6 +1048,7 @@ function get_timetable() {
 					// console.log('XMLHttpRequest(): COMPLETE!');
 					tt_json = JSON.parse(xhr.responseText);
 				} else {
+					alert('時刻表の取得に失敗しました！' + xhr.statusText);
 					console.log('XMLHttpRequest(): FAILED! HttpStatus=' + xhr.statusText);
 				}
 				break;
