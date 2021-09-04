@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # get_timetable.py: 東海道新幹線の時刻表HTMLを取得して時刻表を作成する
 # JR各駅の時刻表：https://railway.jr-central.co.jp/time-schedule/search/index.html
 # JR個別列車案内：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti05.html

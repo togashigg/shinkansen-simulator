@@ -1,1 +1,7 @@
 django
+dateutil
+jpholiday
+requests
+requests_html
+beautifulsoup4
+lxml
