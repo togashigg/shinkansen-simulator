@@ -1,7 +1,7 @@
-django
-dateutil
-jpholiday
-requests
-requests_html
-beautifulsoup4
-lxml
+# django
+python-dateutil==2.8.1
+jpholiday==0.1.5
+requests==2.26.0
+requests_html==0.10.0
+beautifulsoup4==4.9.3
+lxml==4.6.3
