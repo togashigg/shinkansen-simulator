@@ -74,6 +74,7 @@ class timetable:
             self.months.append(str(dt.year) + ('0'+str(dt.month))[-2:])
             dt = dt + relativedelta(months=1)
         self.__DIAGRAM_ROUTE_ENCODE = urllib.parse.quote(DIAGRAM_ROUTE, encoding='euc_jp').lower()
+        self.__dummy_user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36'
 
     def __del__(self):
         """
@@ -129,7 +130,7 @@ class timetable:
                                self.__DIAGRAM_ROUTE_ENCODE,
                                '1')
                 logger.debug('下りURL：' + get_url)
-                res = requests.get(get_url)
+                res = requests.get(get_url, headers={'User-Agent': self.__dummy_user_agent})
                 if res.status_code != requests.codes.ok:
                     logger.error('requests error: ' + str(res))
                 else:
@@ -154,7 +155,7 @@ class timetable:
                                self.__DIAGRAM_ROUTE_ENCODE,
                                '2')
                 logger.debug('上りURL：' + get_url)
-                res = requests.get(get_url)
+                res = requests.get(get_url, headers={'User-Agent': self.__dummy_user_agent})
                 if res.status_code != requests.codes.ok:
                     logger.error('requests error: ' + str(res))
                 else:
@@ -245,7 +246,7 @@ class timetable:
                 logger.debug('列車URL：' + get_url)
                 if True:
                     session = HTMLSession()
-                    res = session.get(get_url)
+                    res = session.get(get_url, headers={'User-Agent': self.__dummy_user_agent})
                     res.html.render()
                     if res.status_code != requests.codes.ok:
                         logger.error('requests error(1): ' + str(res))
@@ -255,7 +256,7 @@ class timetable:
                     res.close()
                     session.close()
                 else:
-                    res = requests.get(get_url)
+                    res = requests.get(get_url, headers={'User-Agent': self.__dummy_user_agent})
                     if res.status_code != requests.codes.ok:
                         logger.error('requests error(2): ' + str(res))
                     else:
