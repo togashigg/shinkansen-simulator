@@ -252,32 +252,49 @@ phina.define('MainScene', {
 			// 設定パネル作成
 			show_setup_panel(this);
 			// 時刻表表示用バルーン
-			this.balloon_timetable_down= phina.ui.TalkBubbleLabel({
+			this.balloon_timetable_down = phina.ui.TalkBubbleLabel({
 				text: '',
 				fontSize: 22,
 				tipDirection: 'top',
-				tipProtrusion: 0,
-				tipBottomSize: 32,
+				tipProtrusion: 1,
+				tipBottomSize: 1,
 				bubbleFill: 'white',
-			}).addChildTo(this).setPosition((SCREEN_WIDTH/4)*3+32, (SCREEN_HEIGHT/9)*5);
+			}).addChildTo(this).setPosition((SCREEN_WIDTH/8)*5+128, (SCREEN_HEIGHT/9)*5+32);
 			this.balloon_timetable_down.hide();
 			this.balloon_timetable_up = phina.ui.TalkBubbleLabel({
 				text: '',
 				fontSize: 22,
 				tipDirection: 'top',
-				tipProtrusion: 0,
-				tipBottomSize: 32,
+				tipProtrusion: 1,
+				tipBottomSize: 1,
 				bubbleFill: 'white',
-			}).addChildTo(this).setPosition(SCREEN_WIDTH/4+64, (SCREEN_HEIGHT/9)*5);
+			}).addChildTo(this).setPosition((SCREEN_WIDTH/8)*2+64, (SCREEN_HEIGHT/9)*5+32);
 			this.balloon_timetable_up.hide();
-			this.setInteractive(false);
-			this.onclick = function(e) {
+			// this.setInteractive(true);
+			this.balloon_timetable_down.setInteractive(true);
+			this.balloon_timetable_up.setInteractive(true);
+			this.onclick = function() {
 				// console.log('MainScene.onclick()');
-				this.setInteractive(false);
-				this.balloon_timetable_down.text = '';
-				this.balloon_timetable_down.hide();
-				this.balloon_timetable_up.text = '';
-				this.balloon_timetable_up.hide();
+				if(! this.click_ignore) {
+					this.balloon_timetable_down.onclick();
+					this.click_ignore = false;
+					this.balloon_timetable_up.onclick();
+				}
+				this.click_ignore = false;
+			}
+			this.balloon_timetable_down.onclick = function() {
+				if(! this.parent.click_ignore) {
+					this.parent.click_ignore = true;
+					this.parent.balloon_timetable_down.text = '';
+					this.parent.balloon_timetable_down.hide();
+				}
+			}
+			this.balloon_timetable_up.onclick = function() {
+				if(! this.parent.click_ignore) {
+					this.parent.click_ignore = true;
+					this.parent.balloon_timetable_up.text = '';
+					this.parent.balloon_timetable_up.hide();
+				}
 			}
 		},
 		// 更新
@@ -390,13 +407,6 @@ phina.define('Train_down', {
 			this.train_image = Sprite('N700down').addChildTo(this).setPosition(-2, -10);
 			this.train_image.scaleX = 0.6;
 			this.train_image.scaleY = 0.6;
-			// 列車時刻表表示
-			this.setInteractive(true);
-			this.onclick = function() {
-				scene_main.balloon_timetable_down.text = get_train_taimetable(this.name, 'down');
-				scene_main.balloon_timetable_down.show();
-				scene_main.setInteractive(true);
-			}
 			// 案内表示吹き出し
 			this.name_msg = this.name;
 			if('remarks' in this.diagram) {
@@ -434,6 +444,19 @@ phina.define('Train_down', {
 				tipBottomSize: 24,
 				bubbleFill: balloon_color,
 			}).addChildTo(this).setPosition(0, posY);
+			// 列車時刻表表示
+			this.setInteractive(true);
+			this.balloon.setInteractive(true);
+			this.onclick = function() {
+				if(! scene_main.click_ignore) {
+					scene_main.click_ignore = true;
+					scene_main.balloon_timetable_down.text = get_train_taimetable(this.name, 'down');
+					scene_main.balloon_timetable_down.show();
+				}
+			}
+			this.balloon.onclick = function() {
+				this.parent.onclick();
+			}
 			// 列車位置調整：下り列車数
 			train_down_count += updateTrain(this, DIAGRAM_DOWN);
 		},
@@ -474,13 +497,6 @@ phina.define('Train_up', {
 			this.train_image = Sprite('N700up').addChildTo(this).setPosition(46, -9);
 			this.train_image.scaleX = 0.6;
 			this.train_image.scaleY = 0.6;
-			// 列車時刻表表示
-			this.setInteractive(true);
-			this.onclick = function() {
-				scene_main.balloon_timetable_up.text = get_train_taimetable(this.name, 'up');
-				scene_main.balloon_timetable_up.show();
-				scene_main.setInteractive(true);
-			}
 			// 案内表示吹き出し
 			this.name_msg = this.name;
 			if('remarks' in this.diagram) {
@@ -518,6 +534,19 @@ phina.define('Train_up', {
 				tipBottomSize: 24,
 				bubbleFill: balloon_color,
 			}).addChildTo(this).setPosition(46, posY);
+			// 列車時刻表表示
+			this.setInteractive(true);
+			this.balloon.setInteractive(true);
+			this.onclick = function() {
+				if(! scene_main.click_ignore) {
+					scene_main.click_ignore = true;
+					scene_main.balloon_timetable_up.text = get_train_taimetable(this.name, 'up');
+					scene_main.balloon_timetable_up.show();
+				}
+			}
+			this.balloon.onclick = function() {
+				this.parent.onclick();
+			}
 			// 列車位置調整：上り列車数
 			train_up_count += updateTrain(this, DIAGRAM_UP);
 		},
@@ -556,16 +585,24 @@ phina.define('Station', {
 			this.x = grid.span(x) + PANEL_OFFSET_X;
 			this.y = grid.span(y) + PANEL_OFFSET_Y;
 			this.setInteractive(true);
-			this.onclick = function(e) {
-				if(this.station_id != (STATIONS.length-1)) {
-					scene_main.balloon_timetable_down.text = get_station_taimetable(this.station_id, 'down');
-					scene_main.balloon_timetable_down.show();
+			this.onclick = function() {
+				if(! scene_main.click_ignore) {
+					scene_main.click_ignore = true;
+					if(this.station_id == (STATIONS.length-1)) {
+						scene_main.balloon_timetable_down.text = '';
+						scene_main.balloon_timetable_down.hide();
+					} else {
+						scene_main.balloon_timetable_down.text = get_station_taimetable(this.station_id, 'down');
+						scene_main.balloon_timetable_down.show();
+					}
+					if(this.station_id == 0) {
+						scene_main.balloon_timetable_up.text = '';
+						scene_main.balloon_timetable_up.hide();
+					} else {
+						scene_main.balloon_timetable_up.text = get_station_taimetable(this.station_id, 'up');
+						scene_main.balloon_timetable_up.show();
+					}
 				}
-				if(this.station_id != 0) {
-					scene_main.balloon_timetable_up.text = get_station_taimetable(this.station_id, 'up');
-					scene_main.balloon_timetable_up.show();
-				}
-				scene_main.setInteractive(true);
 			}
 			// 駅名表示
 			var label = Label(this.station_name.split('').join('\n')).addChildTo(this);
@@ -734,6 +771,7 @@ function show_setup_panel(scene) {
 		fontSize: 24,
 	}).addChildTo(button_updfreq_real);
 	button_updfreq_minus.onclick = function() {
+		scene_main.click_ignore = true;
 		// －ボタンが押されたときの処理
 		if(update_freauency <= 1.0) {
 			if(! isAndroid) {
@@ -759,6 +797,7 @@ function show_setup_panel(scene) {
 		}
 	}
 	button_updfreq_plus.onclick = function() {
+		scene_main.click_ignore = true;
 		// ＋ボタンが押されたときの処理
 		answer = true;
 		if(! isAndroid) {
@@ -777,6 +816,7 @@ function show_setup_panel(scene) {
 		}
 	}
 	button_updfreq_second.onclick = function() {
+		scene_main.click_ignore = true;
 		// 1秒ボタンが押されたときの処理
 		answer = true;
 		if(! isAndroid) {
@@ -792,6 +832,7 @@ function show_setup_panel(scene) {
 		}
 	}
 	button_updfreq_real.onclick = function() {
+		scene_main.click_ignore = true;
 		// 現在時刻＆実時間ボタンが押されたときの処理
 		var curDate = new Date();
 		var dt = curDate.getFullYear()+'年'+('0'+(curDate.getMonth()+1)).slice(-2)+'月'+('0'+curDate.getDate()).slice(-2)+'日';
@@ -878,6 +919,7 @@ function show_setup_panel(scene) {
 			strokeWidth: 5,		// 枠太さ
 		}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
 		button_date_update.onclick = function() {
+			scene_main.click_ignore = true;
 			// 日付ボタンが押されたときの処理
 			answer = prompt('日付を入力して下さい(yyyy-mm-dd)：', currentDate.getFullYear()+'-'+(currentDate.getMonth()+1)+'-'+currentDate.getDate());
 			if(answer) {
@@ -899,6 +941,7 @@ function show_setup_panel(scene) {
 			}
 		}
 		button_time_update.onclick = function() {
+			scene_main.click_ignore = true;
 			// 時刻変更ボタンが押されたときの処理
 			answer = prompt('時刻を入力して下さい(hh:mm)：', getCurrentTime(false));
 			if(answer) {
@@ -934,6 +977,7 @@ function show_setup_panel(scene) {
 		strokeWidth: 5,		// 枠太さ
 	}).addChildTo(setup_panel2).setOrigin(0.0, 0.5).setInteractive(true);
 	button_balloon_show.onclick = function() {
+		scene_main.click_ignore = true;
 		// 走行時バルーン表示ボタンが押されたときの処理
 		answer = true;
 		if(! isAndroid) {
@@ -1076,6 +1120,7 @@ function updateTrain(train, diagram) {
 		if(train.status[0] != TRAIN_OUTOF_RAIL) {
 			train.status = TRAIN_STATUS[TRAIN_OUTOF_RAIL];
 			train.balloon.hide();
+			train.balloon.setInteractive(false);
 			train.hide();
 			rc = -1;
 		}
@@ -1083,6 +1128,7 @@ function updateTrain(train, diagram) {
 		if(train.status[0] == TRAIN_OUTOF_RAIL) {
 			train.status = TRAIN_STATUS[TRAIN_INTO_RAIL];
 			train.balloon.hide();
+			train.balloon.setInteractive(false);
 			train.show();
 			rc = 1;
 		}
@@ -1101,8 +1147,10 @@ function updateTrain(train, diagram) {
 			}
 			train.balloon.text = msg;
 			train.balloon.show();
+			train.balloon.setInteractive(true);
 		} else {
 			train.balloon.hide();
+			train.balloon.setInteractive(false);
 		}
 	}
 	return rc;
