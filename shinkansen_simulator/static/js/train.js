@@ -495,7 +495,7 @@ phina.define('Train_up', {
 			}
 			var balloon_color = "khaki";	// khaki=#f0e68c
 			var tipProtrusion = 32;
-			var posY = -106;
+			var posY = -96;
 			if(this.name.substr(0, 3) == 'のぞみ') {
 				if((count % 2) == 0) {
 					tipProtrusion += 64;
