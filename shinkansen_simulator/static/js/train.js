@@ -1,4 +1,4 @@
-// train,js: 東海道新幹線なんちゃって運行シミュレーター（試作版）
+// train,js: 東海道新幹線なんちゃって運行シミュレーター
 // Copyright (C) N.Togashi 2021
 // phina.js docs：https://phinajs.com/docs/
 // phina.js Tips集：https://qiita.com/alkn203/items/bca3222f6b409382fe20
@@ -663,7 +663,7 @@ phina.define('Station', {
 phina.main(function() {
 	// アプリケーション生成
 	game_app = GameApp({
-		title: '東海道新幹線なんちゃって運行シミュレーター（試作版）',
+		title: '東海道新幹線なんちゃって運行シミュレーター',
 		fps: 2.0,				// fps指定
 		startLabel: 'main',		// メインシーンから開始する
 		width: SCREEN_WIDTH + GRID_SIZE,
