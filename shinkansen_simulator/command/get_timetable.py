@@ -20,6 +20,8 @@
 # sudo pip3 install requests-html
 # sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
 # Ubuntu 18.04でのみ動作（Python3.6のみ動作）
+# Free Proxy：http://free-proxy.cz/ja/proxylist/country/JP/https/ping/all
+#             sudo pip3 install urllib3==1.25.11
 
 import os
 import sys
@@ -82,6 +84,8 @@ class timetable:
                 'http':  'https://43.128.18.61:8080',
                 'https': 'https://43.128.18.61:8080'
         }
+        self.__requests_retry_max = 5
+        self.__requests_retry_seconds = WEBAPI_SLEEP_TIME
 
     def __del__(self):
         """
@@ -137,7 +141,15 @@ class timetable:
                                self.__DIAGRAM_ROUTE_ENCODE,
                                '1')
                 logger.debug('下りURL：' + get_url)
-                res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
+                for try_i in range(self.__requests_retry_max):
+                    try_ok = False
+                    try:
+                        res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
+                        try_ok = True
+                    except HTTPSConnectionPool as e:
+                        time.sleep(self.__requests_retry_seconds)
+                    if try_ok:
+                        break
                 if res.status_code != requests.codes.ok:
                     logger.error('requests error: ' + str(res))
                 else:
@@ -162,7 +174,15 @@ class timetable:
                                self.__DIAGRAM_ROUTE_ENCODE,
                                '2')
                 logger.debug('上りURL：' + get_url)
-                res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
+                for try_i in range(self.__requests_retry_max):
+                    try_ok = False
+                    try:
+                        res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
+                        try_ok = True
+                    except HTTPSConnectionPool as e:
+                        time.sleep(self.__requests_retry_seconds)
+                    if try_ok:
+                        break
                 if res.status_code != requests.codes.ok:
                     logger.error('requests error: ' + str(res))
                 else:
@@ -253,8 +273,15 @@ class timetable:
                 logger.debug('列車URL：' + get_url)
                 if True:
                     session = HTMLSession()
-                    res = session.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
-                    res.html.render()
+                    for try_i in range(self.__requests_retry_max):
+                        try_ok = False
+                        try:
+                            res = session.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
+                            res.html.render()
+                        except HTTPSConnectionPool as e:
+                            time.sleep(self.__requests_retry_seconds)
+                        if try_ok:
+                            break
                     if res.status_code != requests.codes.ok:
                         logger.error('requests error(1): ' + str(res))
                     else:
@@ -263,7 +290,15 @@ class timetable:
                     res.close()
                     session.close()
                 else:
-                    res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
+                    for try_i in range(self.__requests_retry_max):
+                        try_ok = False
+                        try:
+                            res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
+                            try_ok = True
+                        except HTTPSConnectionPool as e:
+                            time.sleep(self.__requests_retry_seconds)
+                        if try_ok:
+                            break
                     if res.status_code != requests.codes.ok:
                         logger.error('requests error(2): ' + str(res))
                     else:
