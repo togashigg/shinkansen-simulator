@@ -74,7 +74,14 @@ class timetable:
             self.months.append(str(dt.year) + ('0'+str(dt.month))[-2:])
             dt = dt + relativedelta(months=1)
         self.__DIAGRAM_ROUTE_ENCODE = urllib.parse.quote(DIAGRAM_ROUTE, encoding='euc_jp').lower()
-        self.__dummy_user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36'
+        self.__request_headers = {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36',
+                'Access-Control-Allow-Origin': '*'
+        }
+        self.__proxies = {
+                'http':  'https://43.128.18.61:8080',
+                'https': 'https://43.128.18.61:8080'
+        }
 
     def __del__(self):
         """
@@ -130,7 +137,7 @@ class timetable:
                                self.__DIAGRAM_ROUTE_ENCODE,
                                '1')
                 logger.debug('下りURL：' + get_url)
-                res = requests.get(get_url, headers={'User-Agent': self.__dummy_user_agent})
+                res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
                 if res.status_code != requests.codes.ok:
                     logger.error('requests error: ' + str(res))
                 else:
@@ -155,7 +162,7 @@ class timetable:
                                self.__DIAGRAM_ROUTE_ENCODE,
                                '2')
                 logger.debug('上りURL：' + get_url)
-                res = requests.get(get_url, headers={'User-Agent': self.__dummy_user_agent})
+                res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
                 if res.status_code != requests.codes.ok:
                     logger.error('requests error: ' + str(res))
                 else:
@@ -246,7 +253,7 @@ class timetable:
                 logger.debug('列車URL：' + get_url)
                 if True:
                     session = HTMLSession()
-                    res = session.get(get_url, headers={'User-Agent': self.__dummy_user_agent})
+                    res = session.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
                     res.html.render()
                     if res.status_code != requests.codes.ok:
                         logger.error('requests error(1): ' + str(res))
@@ -256,7 +263,7 @@ class timetable:
                     res.close()
                     session.close()
                 else:
-                    res = requests.get(get_url, headers={'User-Agent': self.__dummy_user_agent})
+                    res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
                     if res.status_code != requests.codes.ok:
                         logger.error('requests error(2): ' + str(res))
                     else:
@@ -630,7 +637,7 @@ if __name__ == '__main__':
             # 列車一覧に特記事項の列車を追加する
             trl = ttobj.append_trains_from_remarks(trl, rem)
         # ④列車毎の時刻表を取得する
-        # trt = ttobj.get_trains_timetable(trl)
+        trt = ttobj.get_trains_timetable(trl)
         # ⑤各列車の時刻表を作成する
         tt = ttobj.make_timetable(trl, trt, rem)
         # ⑥時刻表をファイルに出力する
