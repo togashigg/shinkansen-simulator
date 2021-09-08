@@ -1024,6 +1024,7 @@ function calcStationsGridX(stations) {
 		station_distance += stations_distance[i+1];
 		stations[i][2] = station_distance / panel_distance;
 	}
+	stations[STATIONS.length-2][2] += 2;
 	return stations;
 }
 function calcDistance(LatLng1, LatLng2) {
