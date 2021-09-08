@@ -146,8 +146,10 @@ class timetable:
                     try:
                         res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
                         try_ok = True
-                    except HTTPSConnectionPool as e:
-                        time.sleep(self.__requests_retry_seconds)
+                    except requests.exceptions.ProxyError as e:
+                        logger.warning('except ProxyError!')
+                        if (try_i+1) < self.__requests_retry_max:
+                            time.sleep(self.__requests_retry_seconds)
                     if try_ok:
                         break
                 if res.status_code != requests.codes.ok:
@@ -179,8 +181,10 @@ class timetable:
                     try:
                         res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
                         try_ok = True
-                    except HTTPSConnectionPool as e:
-                        time.sleep(self.__requests_retry_seconds)
+                    except requests.exceptions.ProxyError as e:
+                        logger.warning('except ProxyError!')
+                        if (try_i+1) < self.__requests_retry_max:
+                            time.sleep(self.__requests_retry_seconds)
                     if try_ok:
                         break
                 if res.status_code != requests.codes.ok:
@@ -278,8 +282,10 @@ class timetable:
                         try:
                             res = session.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
                             res.html.render()
-                        except HTTPSConnectionPool as e:
-                            time.sleep(self.__requests_retry_seconds)
+                        except requests.exceptions.ProxyError as e:
+                            logger.warning('except ProxyError!')
+                            if (try_i+1) < self.__requests_retry_max:
+                                time.sleep(self.__requests_retry_seconds)
                         if try_ok:
                             break
                     if res.status_code != requests.codes.ok:
@@ -295,8 +301,10 @@ class timetable:
                         try:
                             res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
                             try_ok = True
-                        except HTTPSConnectionPool as e:
-                            time.sleep(self.__requests_retry_seconds)
+                        except requests.exceptions.ProxyError as e:
+                            logger.warning('except ProxyError!')
+                            if (try_i+1) < self.__requests_retry_max:
+                                time.sleep(self.__requests_retry_seconds)
                         if try_ok:
                             break
                     if res.status_code != requests.codes.ok:
