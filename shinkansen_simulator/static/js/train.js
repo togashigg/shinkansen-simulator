@@ -27,7 +27,7 @@ if(ENVIRONMENT == 'heroku') {
 	CACHE_PATH = './';
 }
 var PROGRAM_TITLE = '東海道新幹線なんちゃって運行シミュレーター';
-var PROGRAM_VERSION = '0.1.0';
+var PROGRAM_VERSION = '0.1.1';
 var COPYRIGHT = 'Copyright (C) N.Togashi 2021';
 var THANKS = '謝辞：Heroku、Phina.js、phina-talkbubble.js、encoding.js、JR東海時刻表、素材Library.com(日本地図)を使わせて頂きました。';
 var DIAGRAM_VERSION = '20210901版';
@@ -45,7 +45,7 @@ var TRAIN_DOWN = 21;		// 下り
 var STATION_Y = 6;			// 駅舎の縦位置
 var STATION_SIZE = [56, 128];	// 駅舎のサイズ[X, Y]
 var STATIONS = [			// 駅舎情報 ID,駅名,X
-	[ 0, '東京',		PANEL_NUM_X-1,	STATION_Y, 6, [35.6809591, 139.7673068], 0, 0],
+	[ 0, '東京',		PANEL_NUM_X-1,	STATION_Y, 6, [35.6809591+0.1, 139.7673068], 0, 0],
 	[ 1, '品川',		0,				STATION_Y, 4, [35.6291112, 139.7389313], 0, 0],
 	[ 2, '新横浜',		0,				STATION_Y, 4, [35.5067084, 139.6168805], 0, 0],
 	[ 3, '小田原',		0,				STATION_Y, 4, [35.2562557, 139.1554675], 0, 0],
@@ -63,7 +63,8 @@ var STATIONS = [			// 駅舎情報 ID,駅名,X
 	[15, '京都',		0,				STATION_Y, 4, [34.9851603, 135.7584294], 0, 0],
 	[16, '新大阪',		2,				STATION_Y, 8, [34.7338219, 135.5014056], 0, 0],
 ];
-STATIONS = calcStationsGridX(STATIONS);
+var STATIONS_DISTANCE = calcStationsDistance(STATIONS);
+STATIONS = calcStationsGridX(STATIONS, STATIONS_DISTANCE);
 var DIAGRAM_DOWN = {		// 下り時刻表
 	'property': ['down', 20210701, 20210731],
 	'こだま707号': {
@@ -93,27 +94,33 @@ var DIAGRAM_UP = {			// 上り時刻表
 	},
 };
 var TRAIN_STATUS = [	// balloon_show, message, station, next
-	[0, false, '', 0, 1],
-	[1, true, '{{train}}\n{{to}}行きです', 0, 1],
-	[2, true, '{{train}}\n間もなく発車します', 0, 1],
-	[3, true, '{{train}}\n次は{{next}}に止まります', 0, 1],
-	[4, false, '{{train}}', 0, 1],
-	[5, true, '{{train}}\n間もなく{{next}}です', 0, 1],
-	[6, true, '{{train}}\n{{station}}です', 0, 1],
-	[7, true, '{{train}}\n{{station}}です', 0, 1],
-	[8, true, '{{train}}\n間もなく終点{{to}}です', 0, 1],
-	[9, true, '{{train}}\n終点{{to}}です', 0, 1]
+	[0, 0, false, '', 0, 1],
+	[1, 0, true, '{{train}}\n{{to}}行きです', 0, 1],
+	[2, 0, true, '{{train}}\n間もなく発車します', 0, 1],
+	[3, 0, true, '{{train}}\n次は{{next}}に止まります', 0, 1],
+	[4, 0, false, '{{train}}', 0, 1],
+	[5, 0, true, '{{train}}\n間もなく{{next}}です', 0, 1],
+	[6, 0, true, '{{train}}\n{{station}}です', 0, 1],
+	[7, 0, true, '{{train}}\n{{station}}です', 0, 1],
+	[8, 0, true, '{{train}}\n間もなく終点{{to}}です', 0, 1],
+	[9, 0, true, '{{train}}\n終点{{to}}です', 0, 1]
 ];
-var TRAIN_OUTOF_RAIL   = 0;
-var TRAIN_INTO_RAIL    = 1;
-var TRAIN_SOON_START   = 2;
-var TRAIN_START        = 3;
-var TRAIN_RUNNING      = 4;
-var TRAIN_SOON_STOP    = 5;
-var TRAIN_STOP_STATION = 6;
-var TRAIN_STOPPING     = 7;
-var TRAIN_SOON_ARRIVAL = 8;
-var TRAIN_ARRIVAL      = 9;
+var TRAIN_OUTOF_RAIL   = 0;	// 時間外
+var TRAIN_INTO_RAIL    = 1;	// 停車中
+var TRAIN_SOON_START   = 2;	// 停車中
+var TRAIN_START        = 3;	// 走行中
+var TRAIN_RUNNING      = 4;	// 走行中
+var TRAIN_SOON_STOP    = 5;	// 走行中
+var TRAIN_STOP_STATION = 6;	// 停車中
+var TRAIN_STOPPING     = 7;	// 停車中
+var TRAIN_SOON_ARRIVAL = 8;	// 停車中
+var TRAIN_ARRIVAL      = 9;	// 停車中
+var TS_ID = 0;
+var TS_TIME = 1;
+var TS_BALLOON = 2;
+var TS_MESSAGE = 3;
+var TS_STATION = 4;
+var TS_NEXT = 5;
 var ASSETS = {
 	image: {
 		'日本地図': STATIC_PATH + 'images/2528.png',
@@ -127,21 +134,22 @@ var ASSETS = {
 WEEKDAYS = ['日','月','火','水','木','金','土'];
 
 // グローバル変数
-var game_app = null;
-var scene_main = null;
-var demo = 1;
-var realDate = new Date()
-var startDate = getCurrentDate(1, 0);
-var currentDate = startDate;
+var g_game_app = null;
+var g_scene_main = null;
+var g_demo = 1;
+var g_real_date = new Date()
+var g_start_date = getCurrentDate(1, 0);
+var g_current_date = g_start_date;
 // console.log('start:' + getCurrentTime(true));
-var update_freauency = 2.0;
-var stations = [];
-var trains = [];
+var g_update_freauency = 2.0;
+var g_stations = [];
+var g_trains_down = [];
+var g_trains_up = [];
 // グリッド
-var grid = Grid(GRID_SIZE * PANEL_NUM_X, PANEL_NUM_X);
+var g_grids = Grid(GRID_SIZE * PANEL_NUM_X, PANEL_NUM_X);
 // 列車数を初期化
-var train_down_count = 0;
-var train_up_count = 0;
+var g_train_down_count = 0;
+var g_train_up_count = 0;
 
 // MainScene クラス定義：メインシーン
 phina.define('MainScene', {
@@ -157,7 +165,7 @@ phina.define('MainScene', {
 				// fill: 'transparent',	// 'white',
 			});
 			this.force_update = false;
-			scene_main = this;
+			g_scene_main = this;
 			// グループ作成
 			var back_panel = DisplayElement().addChildTo(this);
 			var group_panel = DisplayElement().addChildTo(this);
@@ -166,36 +174,36 @@ phina.define('MainScene', {
 			this.group_train = DisplayElement().addChildTo(this);
 			// 背景表示
 			this.back_image = Sprite('日本地図').addChildTo(back_panel).setRotation(8);
-			this.back_image.setPosition(1560, -10).setScale(12.9, 6.0);
+			this.back_image.setPosition(1560, -10).setScale(12.5, 6.0);
 			// Copyrightと謝辞を表示
 			Label({
 				text: COPYRIGHT + '  ' + THANKS,
-				x: grid.span(PANEL_NUM_X/2) + 64,
-				y: grid.span(PANEL_NUM_Y) + 16,
+				x: g_grids.span(PANEL_NUM_X/2) + 64,
+				y: g_grids.span(PANEL_NUM_Y) + 16,
 				fontSize: 24,
 			}).addChildTo(back_panel);
 			// タイトル表示
 			this.title = Label({
 				text: PROGRAM_TITLE + ' ' + PROGRAM_VERSION,
-				x: grid.span(PANEL_NUM_X/2) + PANEL_OFFSET_X + 32*5,
-				y: grid.span(1) + PANEL_OFFSET_Y,
+				x: g_grids.span(PANEL_NUM_X/2) + PANEL_OFFSET_X + 32*5,
+				y: g_grids.span(1) + PANEL_OFFSET_Y,
 			}).addChildTo(this);
 			this.diagram_version = Label({
 				text: '時刻表：' + DIAGRAM_VERSION,
-				x: grid.span(PANEL_NUM_X) + PANEL_OFFSET_X,
-				y: grid.span(1) + PANEL_OFFSET_Y,
+				x: g_grids.span(PANEL_NUM_X) + PANEL_OFFSET_X,
+				y: g_grids.span(1) + PANEL_OFFSET_Y,
 				align: 'right',
 			}).addChildTo(this);
 			this.date = Label({
-				text: startDate.getFullYear()+'年'+('0'+(startDate.getMonth()+1)).slice(-2)+'月'+('0'+startDate.getDate()).slice(-2)+'日(' + WEEKDAYS[startDate.getDay()] + ')',
-				x: grid.span(PANEL_NUM_X) + PANEL_OFFSET_X + 60,
-				y: grid.span(2) + PANEL_OFFSET_Y,
+				text: g_start_date.getFullYear()+'年'+('0'+(g_start_date.getMonth()+1)).slice(-2)+'月'+('0'+g_start_date.getDate()).slice(-2)+'日(' + WEEKDAYS[g_start_date.getDay()] + ')',
+				x: g_grids.span(PANEL_NUM_X) + PANEL_OFFSET_X + 60,
+				y: g_grids.span(2) + PANEL_OFFSET_Y,
 				align: 'right',
 			}).addChildTo(this);
 			this.time = Label({
-				text: (' '+startDate.getHours()).slice(-2)+'時'+(' '+startDate.getMinutes()).slice(-2)+'分',
-				x: grid.span(PANEL_NUM_X) + PANEL_OFFSET_X,
-				y: grid.span(3) + PANEL_OFFSET_Y,
+				text: (' '+g_start_date.getHours()).slice(-2)+'時'+(' '+g_start_date.getMinutes()).slice(-2)+'分',
+				x: g_grids.span(PANEL_NUM_X) + PANEL_OFFSET_X,
+				y: g_grids.span(3) + PANEL_OFFSET_Y,
 				align: 'right',
 			}).addChildTo(this);
 			this.limitations = Label({
@@ -203,19 +211,19 @@ phina.define('MainScene', {
 				fill: 'red',
 				fontSize: 20,
 				fontWeight: "bold",
-				x: grid.span(PANEL_NUM_X/2+18) + PANEL_OFFSET_X,
-				y: grid.span(2) + PANEL_OFFSET_Y,
+				x: g_grids.span(PANEL_NUM_X/2+18) + PANEL_OFFSET_X,
+				y: g_grids.span(2) + PANEL_OFFSET_Y,
 				align: 'right',
 			}).addChildTo(this);
 			// 列車数表示
 			this.train_count = Label('下り：0  上り：0').addChildTo(this);
-			this.train_count.x = grid.span(PANEL_NUM_X/4*3) + PANEL_OFFSET_X;
-			this.train_count.y = grid.span(3) + PANEL_OFFSET_Y;
+			this.train_count.x = g_grids.span(PANEL_NUM_X/4*3) + PANEL_OFFSET_X;
+			this.train_count.y = g_grids.span(3) + PANEL_OFFSET_Y;
 
 			// 駅舎を表示する
-			for(i=0; i<STATIONS.length; i++) {
+			for(let i=0; i<STATIONS.length; i++) {
 				var station = Station(STATIONS[i], group_line).addChildTo(group_station);
-				stations.push(station);
+				g_stations.push(station);
 			}
 
 			// グリッドにパネル配置
@@ -227,8 +235,8 @@ phina.define('MainScene', {
 					var panel = Panel().addChildTo(group_panel);
 					// Gridを利用して配置
 					// panel.setOrigin(0, 0);
-					panel.x = grid.span(xG) + PANEL_OFFSET_X;
-					panel.y = grid.span(yG) + PANEL_OFFSET_Y;
+					panel.x = g_grids.span(xG) + PANEL_OFFSET_X;
+					panel.y = g_grids.span(yG) + PANEL_OFFSET_Y;
 					// パネルに線路を描画する
 					panel.isLine = false;
 					// if(LINE_POS_Y.indexOf(yG + 1) >= 0 && spanX >= (PANEL_OFFSET_X / GRID_SIZE)) {
@@ -268,7 +276,7 @@ phina.define('MainScene', {
 				tipProtrusion: 1,
 				tipBottomSize: 1,
 				bubbleFill: 'white',
-			}).addChildTo(this).setPosition((SCREEN_WIDTH/8)*2+64, (SCREEN_HEIGHT/9)*5+32);
+			}).addChildTo(this).setPosition((SCREEN_WIDTH/8)*2+96, (SCREEN_HEIGHT/9)*5+32);
 			this.balloon_timetable_up.hide();
 			// this.setInteractive(true);
 			this.balloon_timetable_down.setInteractive(true);
@@ -301,25 +309,62 @@ phina.define('MainScene', {
 		update: function() {
 			// 現在時刻を更新
 			var cDate = getCurrentDate(0, 1);
-			var diff = cDate.getTime() - currentDate.getTime();
+			var diff = cDate.getTime() - g_current_date.getTime();
 			if(this.force_update == false
-			&& (cDate.getFullYear() == currentDate.getFullYear()
-			 && cDate.getMonth() == currentDate.getMonth()
-			 && cDate.getDay() == currentDate.getDay()
-			 && cDate.getHours() == currentDate.getHours()
-			 && cDate.getMinutes() == currentDate.getMinutes())) {
+			&& (cDate.getFullYear() == g_current_date.getFullYear()
+			 && cDate.getMonth() == g_current_date.getMonth()
+			 && cDate.getDay() == g_current_date.getDay()
+			 && cDate.getHours() == g_current_date.getHours()
+			 && cDate.getMinutes() == g_current_date.getMinutes())) {
 				// console.log('update pass: ' + diff + 'ms');
 				return;
 			}
 			this.force_update = false;
-			realDate.setTime(new Date());
-			currentDate = cDate;
+			g_real_date.setTime(new Date());
+			g_current_date = cDate;
 			var cTime = getCurrentTime(true);
 			var hm = cTime.split(':');
-			this.date.text = currentDate.getFullYear()+'年'+('0'+(currentDate.getMonth()+1)).slice(-2)+'月'+('0'+currentDate.getDate()).slice(-2)+'日('+WEEKDAYS[currentDate.getDay()]+')';
+			this.date.text = g_current_date.getFullYear()+'年'+('0'+(g_current_date.getMonth()+1)).slice(-2)+'月'+('0'+g_current_date.getDate()).slice(-2)+'日('+WEEKDAYS[g_current_date.getDay()]+')';
 			this.time.text = hm[0]+'時'+hm[1]+'分';
 			// console.log('MainScene.update: ' + cTime);
-			// 下り列車を更新
+			// こだま号→ひかり号→のぞみ号の順で更新する
+			let trains_update = [];
+			for(let i=0; i<g_trains_down.length; i++) {
+				if(g_trains_down[i].name.substr(0,3) == 'こだま') {
+					trains_update.push(g_trains_down[i]);
+				}
+			}
+			for(let i=0; i<g_trains_up.length; i++) {
+				if(g_trains_up[i].name.substr(0,3) == 'こだま') {
+					trains_update.push(g_trains_up[i]);
+				}
+			}
+			// ひかり号を加える
+			for(let i=0; i<g_trains_down.length; i++) {
+				if(g_trains_down[i].name.substr(0,3) == 'ひかり') {
+					trains_update.push(g_trains_down[i]);
+				}
+			}
+			for(let i=0; i<g_trains_up.length; i++) {
+				if(g_trains_up[i].name.substr(0,3) == 'ひかり') {
+					trains_update.push(g_trains_up[i]);
+				}
+			}
+			// のぞみ号を加える
+			for(let i=0; i<g_trains_down.length; i++) {
+				if(g_trains_down[i].name.substr(0,3) == 'のぞみ') {
+					trains_update.push(g_trains_down[i]);
+				}
+			}
+			for(let i=0; i<g_trains_up.length; i++) {
+				if(g_trains_up[i].name.substr(0,3) == 'のぞみ') {
+					trains_update.push(g_trains_up[i]);
+				}
+			}
+			for(let i=0; i<trains_update.length; i++) {
+				updateTrain(trains_update[i]);
+			}
+			// 下り列車を新規追加
 			for(let key in DIAGRAM_DOWN) {
 				if(key == 'property') continue;
 				// console.log(key + '.diagram.property:' + DIAGRAM_DOWN[key]['property'].join(','));
@@ -330,11 +375,11 @@ phina.define('MainScene', {
 					if(key.substr(0, 3) == 'のぞみ') {
 						this.down_nozomi_count++;
 					}
-					// console.log('MainScene.update Train_down:' + DIAGRAM_DOWN[key]['property'].join(','));
-					trains.push(Train_down(key, this.down_nozomi_count).addChildTo(this.group_train));
+					// console.log('MainScene.update Train(down):' + DIAGRAM_DOWN[key]['property'].join(','));
+					g_trains_down.push(Train(DIAGRAM_DOWN, key, this.down_nozomi_count).addChildTo(this.group_train));
 				}
 			}
-			// 上り列車を更新
+			// 上り列車を新規追加
 			for(let key in DIAGRAM_UP) {
 				if(key == 'property') continue;
 				// console.log(key + '.diagram.property:' + DIAGRAM_UP[key]['property'].join(','));
@@ -345,12 +390,12 @@ phina.define('MainScene', {
 					if(key.substr(0, 3) == 'のぞみ') {
 						this.up_nozomi_count++;
 					}
-					// console.log('MainScene.update Train_up:' + DIAGRAM_UP[key]['property'].join(','));
-					trains.push(Train_up(key, this.up_nozomi_count).addChildTo(this.group_train));
+					// console.log('MainScene.update Train(up):' + DIAGRAM_UP[key]['property'].join(','));
+					g_trains_up.push(Train(DIAGRAM_UP, key, this.up_nozomi_count).addChildTo(this.group_train));
 				}
 			}
 			// 列車数を更新
-			this.train_count.text = '下り：' + train_down_count + '本  上り：' + train_up_count + '本';
+			this.train_count.text = '下り：' + g_train_down_count + '本  上り：' + g_train_up_count + '本';
 		},
 });
 
@@ -382,29 +427,37 @@ phina.define('Panel', {
 		},
 });
 
-// 下り列車クラス
-phina.define('Train_down', {
+// 列車クラス
+phina.define('Train', {
 	// Shapeを継承
 	superClass: 'Shape',
 		// コンストラクタ
-		init: function(name, count) {
+		init: function(diagram_all, name, count) {
 			// 親クラス初期化
 			this.superInit({
 				width: GRID_SIZE,
 				height: GRID_SIZE,
 				backgroundColor: 'transparent',
 			});
+			this.diagram_all = diagram_all;
 			this.name = name;
-			this.diagram = DIAGRAM_DOWN[this.name];
+			this.diagram = diagram_all[this.name];
 			this.diagram['status'][0] = this;
 			this.status = TRAIN_STATUS[TRAIN_OUTOF_RAIL];
-			this.cDate = currentDate;
+			this.cDate = g_current_date;
+			this.running_plan = null;
 			this.force_update = false;
+			this.train_location = -1.0;
+			this.train_st_id = -1;
 			// イメージ表示
-			this.x = grid.span(PANEL_NUM_X - 1) + PANEL_OFFSET_X;
-			this.y = grid.span(TRAIN_DOWN - 1) + PANEL_OFFSET_Y;
-			// var sprite = Sprite('300down').addChildTo(this).origin.set(0.5, 0.5);
-			this.train_image = Sprite('N700down').addChildTo(this).setPosition(-2, -10);
+			if(this.diagram['property'][0] == 'down') {
+				this.x = g_grids.span(PANEL_NUM_X - 1) + PANEL_OFFSET_X;
+				this.y = g_grids.span(TRAIN_DOWN - 1) + PANEL_OFFSET_Y;
+				this.train_image = Sprite('N700down').addChildTo(this).setPosition(-2, -10);
+			} else {
+				this.y = g_grids.span(TRAIN_UP - 1) + PANEL_OFFSET_Y;
+				this.train_image = Sprite('N700up').addChildTo(this).setPosition(46, -9);
+			}
 			this.train_image.scaleX = 0.6;
 			this.train_image.scaleY = 0.6;
 			// 案内表示吹き出し
@@ -419,147 +472,60 @@ phina.define('Train_down', {
 					}
 				}
 			}
+			// バルーン表示
 			var balloon_color = "khaki";	// khaki=#f0e68c
 			var tipProtrusion = 32;
-			var posY = 90;
+			var balloon_posX = 0;
+			var balloon_posY = 90;
+			var balloon_posY_sign = 1;
+			var nozomi_near = 1;
+			var balloon_tipDirection = 'top';
+			this.balloon_timetable = g_scene_main.balloon_timetable_down;
+			if(this.diagram['property'][0] == 'up') {
+				balloon_posX = 48;
+				balloon_posY = -96;
+				balloon_posY_sign = -1;
+				nozomi_near = 0;
+				balloon_tipDirection = 'bottom';
+				this.balloon_timetable = g_scene_main.balloon_timetable_up;
+			}
 			if(this.name.substr(0, 3) == 'のぞみ') {
-				if((count % 2) == 1) {
+				if((count % 2) == nozomi_near) {
 					tipProtrusion += 64;
-					posY += 64;
+					balloon_posY += balloon_posY_sign * 64;
 				}
 			} else if(this.name.substr(0, 3) == 'ひかり') {
 				balloon_color = "tomato";	// tomato=#ff6347
 				tipProtrusion += 128;
-				posY += 128;
+				balloon_posY += balloon_posY_sign * 128;
 			} else if(this.name.substr(0, 3) == 'こだま') {
 				balloon_color = "lightsteelblue";	// lightsteelblue=#e6e6fa
 				tipProtrusion += 192;
-				posY += 192;
+				balloon_posY += balloon_posY_sign * 192;
 			}
 			this.balloon = phina.ui.TalkBubbleLabel({
 				text: '',
 				fontSize: 22,
-				tipDirection: 'top',
+				tipDirection: balloon_tipDirection,
 				tipProtrusion: tipProtrusion,
 				tipBottomSize: 24,
 				bubbleFill: balloon_color,
-			}).addChildTo(this).setPosition(0, posY);
+			}).addChildTo(this).setPosition(balloon_posX, balloon_posY);
 			// 列車時刻表表示
 			this.setInteractive(true);
 			this.balloon.setInteractive(true);
 			this.onclick = function() {
-				if(! scene_main.click_ignore) {
-					scene_main.click_ignore = true;
-					scene_main.balloon_timetable_down.text = get_train_taimetable(this.name, 'down');
-					scene_main.balloon_timetable_down.show();
+				if(! g_scene_main.click_ignore) {
+					g_scene_main.click_ignore = true;
+					this.balloon_timetable.text = get_train_taimetable(this.name, this.diagram['property'][0]);
+					this.balloon_timetable.show();
 				}
 			}
 			this.balloon.onclick = function() {
 				this.parent.onclick();
 			}
-			// 列車位置調整：下り列車数
-			train_down_count += updateTrain(this, DIAGRAM_DOWN);
-		},
-		// 更新
-		update: function() {
-			// console.log('Train_down.update');
-			var diff = currentDate.getTime() - this.cDate.getTime();
-			if(this.force_update || (diff/1000) > update_freauency) {
-				this.force_update = false;
-				this.cDate = currentDate;
-				// 列車位置調整：下り列車数
-				train_down_count += updateTrain(this, DIAGRAM_DOWN);
-			}
-		},
-});
-
-// 上り列車クラス
-phina.define('Train_up', {
-	// Shapeを継承
-	superClass: 'Shape',
-		// コンストラクタ
-		init: function(name, count) {
-			// 親クラス初期化
-			this.superInit({
-				width: GRID_SIZE,
-				height: GRID_SIZE,
-				backgroundColor: 'transparent',
-			});
-			this.name = name;
-			this.diagram = DIAGRAM_UP[this.name];
-			this.diagram['status'][0] = this;
-			this.status = TRAIN_STATUS[TRAIN_OUTOF_RAIL];
-			this.cDate = currentDate;
-			this.force_update = false;
-			// イメージ表示
-			this.y = grid.span(TRAIN_UP - 1) + PANEL_OFFSET_Y;
-			// var sprite = Sprite('300up').addChildTo(this).origin.set(-1.0, 0.5);
-			this.train_image = Sprite('N700up').addChildTo(this).setPosition(46, -9);
-			this.train_image.scaleX = 0.6;
-			this.train_image.scaleY = 0.6;
-			// 案内表示吹き出し
-			this.name_msg = this.name;
-			if('remarks' in this.diagram) {
-				if('事項' in this.diagram['remarks']) {
-					if(this.diagram['remarks']['事項'] != '') {
-						this.name_msg += this.diagram['remarks']['事項'].substr(0,1);
-						if(this.diagram['remarks']['事項'].substr(1).indexOf('☆') >= 0) {
-							this.name_msg += '☆';
-						}
-					}
-				}
-			}
-			var balloon_color = "khaki";	// khaki=#f0e68c
-			var tipProtrusion = 32;
-			var posY = -96;
-			if(this.name.substr(0, 3) == 'のぞみ') {
-				if((count % 2) == 0) {
-					tipProtrusion += 64;
-					posY -= 64;
-				}
-			} else if(this.name.substr(0, 3) == 'ひかり') {
-				balloon_color = "tomato";	// tomato=#ff6347
-				tipProtrusion += 128;
-				posY -= 128;
-			} else if(this.name.substr(0, 3) == 'こだま') {
-				balloon_color = "lightsteelblue";	// lightsteelblue=#e6e6fa
-				tipProtrusion += 192;
-				posY -= 192;
-			}
-			this.balloon = phina.ui.TalkBubbleLabel({
-				text: '',
-				fontSize: 22,
-				tipDirection: 'bottom',
-				tipProtrusion: tipProtrusion,
-				tipBottomSize: 24,
-				bubbleFill: balloon_color,
-			}).addChildTo(this).setPosition(46, posY);
-			// 列車時刻表表示
-			this.setInteractive(true);
-			this.balloon.setInteractive(true);
-			this.onclick = function() {
-				if(! scene_main.click_ignore) {
-					scene_main.click_ignore = true;
-					scene_main.balloon_timetable_up.text = get_train_taimetable(this.name, 'up');
-					scene_main.balloon_timetable_up.show();
-				}
-			}
-			this.balloon.onclick = function() {
-				this.parent.onclick();
-			}
-			// 列車位置調整：上り列車数
-			train_up_count += updateTrain(this, DIAGRAM_UP);
-		},
-		// 更新
-		update: function() {
-			// console.log('Train_up.update');
-			var diff = currentDate.getTime() - this.cDate.getTime();
-			if(this.force_update || (diff/1000) > update_freauency) {
-				this.force_update = false;
-				this.cDate = currentDate;
-				// 列車位置調整：上り列車数
-				train_up_count += updateTrain(this, DIAGRAM_UP);
-			}
+			// 列車位置調整、表示列車数
+			updateTrain(this);
 		},
 });
 
@@ -582,25 +548,25 @@ phina.define('Station', {
 				stroke: 'black',	// 枠の色
 				cornerRadius: 2,	// 角の丸み
 			});
-			this.x = grid.span(x) + PANEL_OFFSET_X;
-			this.y = grid.span(y) + PANEL_OFFSET_Y;
+			this.x = g_grids.span(x) + PANEL_OFFSET_X;
+			this.y = g_grids.span(y) + PANEL_OFFSET_Y;
 			this.setInteractive(true);
 			this.onclick = function() {
-				if(! scene_main.click_ignore) {
-					scene_main.click_ignore = true;
+				if(! g_scene_main.click_ignore) {
+					g_scene_main.click_ignore = true;
 					if(this.station_id == (STATIONS.length-1)) {
-						scene_main.balloon_timetable_down.text = '';
-						scene_main.balloon_timetable_down.hide();
+						g_scene_main.balloon_timetable_down.text = '';
+						g_scene_main.balloon_timetable_down.hide();
 					} else {
-						scene_main.balloon_timetable_down.text = get_station_taimetable(this.station_id, 'down');
-						scene_main.balloon_timetable_down.show();
+						g_scene_main.balloon_timetable_down.text = get_station_taimetable(this.station_id, 'down');
+						g_scene_main.balloon_timetable_down.show();
 					}
 					if(this.station_id == 0) {
-						scene_main.balloon_timetable_up.text = '';
-						scene_main.balloon_timetable_up.hide();
+						g_scene_main.balloon_timetable_up.text = '';
+						g_scene_main.balloon_timetable_up.hide();
 					} else {
-						scene_main.balloon_timetable_up.text = get_station_taimetable(this.station_id, 'up');
-						scene_main.balloon_timetable_up.show();
+						g_scene_main.balloon_timetable_up.text = get_station_taimetable(this.station_id, 'up');
+						g_scene_main.balloon_timetable_up.show();
 					}
 				}
 			}
@@ -609,6 +575,14 @@ phina.define('Station', {
 			// label.fontFamily = 'sans-serif';
 			label.fontSize = 26;
 			label.fill = 'black';
+			// 駅名とホームを線で繋ぐ
+			var station_home_line = RectangleShape({
+				width: 2,
+				height: 300,
+				fill: 'background',
+				stroke: 'black',
+				strokeWidth: 1,
+			}).addChildTo(this).setOrigin(0.5, 1.0).setPosition(0, GRID_SIZE*(STATION_Y+6)-10);
 			// ホームを表示
 			var home = RectangleShape({
 				width: PANEL_SIZE*1.5,
@@ -619,40 +593,32 @@ phina.define('Station', {
 			}).addChildTo(this).setPosition(-2, (LINE_POS_Y[0]-STATION_Y-1)*PANEL_SIZE+15);
 			// パネルにホームを描画する
 			if(homes > 2) {
-				for(var i=1; i<(homes/2); i++) {
+				for(let i=1; i<(homes/2); i++) {
 					// 上り用
-					var xL = grid.span(x) + PANEL_OFFSET_X;
-					var yL = grid.span(LINE_POS_Y[0] - i - 1) + PANEL_OFFSET_Y;
+					var xL = g_grids.span(x) + PANEL_OFFSET_X;
+					var yL = g_grids.span(LINE_POS_Y[0] - i - 1) + PANEL_OFFSET_Y;
 					Sprite('line').addChildTo(group_line).setPosition(xL - PANEL_SIZE/4, yL - PANEL_SIZE/2);
 					Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/4, yL - PANEL_SIZE/2);
 					if(this.station_id != 0) {
 						Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/2, yL - PANEL_SIZE/2).setRotation(90);
 						Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/2, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*1)).setRotation(90);
-//						Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/2, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*2)).setRotation(90);
-//						Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/2, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*3)).setRotation(90);
 					}
 					if(this.station_id != (STATIONS.length-1)) {
 						Sprite('line').addChildTo(group_line).setPosition(xL-(PANEL_SIZE/4)*3, yL - PANEL_SIZE/2).setRotation(90);
 						Sprite('line').addChildTo(group_line).setPosition(xL-(PANEL_SIZE/4)*3, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*1)).setRotation(90);
-//						Sprite('line').addChildTo(group_line).setPosition(xL-(PANEL_SIZE/4)*3, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*2)).setRotation(90);
-//						Sprite('line').addChildTo(group_line).setPosition(xL-(PANEL_SIZE/4)*3, yL - PANEL_SIZE/2 + (PANEL_SIZE/2*3)).setRotation(90);
 					}
 					// 下り用
-					xL = grid.span(x) + PANEL_OFFSET_X;
-					yL = grid.span(LINE_POS_Y[1] + i - 2) + PANEL_OFFSET_Y;
+					xL = g_grids.span(x) + PANEL_OFFSET_X;
+					yL = g_grids.span(LINE_POS_Y[1] + i - 2) + PANEL_OFFSET_Y;
 					Sprite('line').addChildTo(group_line).setPosition(xL - PANEL_SIZE/4, yL + PANEL_SIZE/2);
 					Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/4, yL + PANEL_SIZE/2);
 					if(this.station_id != 0) {
 						Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/2, yL + PANEL_SIZE/2 - PANEL_SIZE/4).setRotation(90);
 						Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/2, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*1)).setRotation(90);
-//						Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/2, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*2)).setRotation(90);
-//						Sprite('line').addChildTo(group_line).setPosition(xL + PANEL_SIZE/2, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*3)).setRotation(90);
 					}
 					if(this.station_id != (STATIONS.length-1)) {
 						Sprite('line').addChildTo(group_line).setPosition(xL-(PANEL_SIZE/4)*3, yL + PANEL_SIZE/2 - PANEL_SIZE/4).setRotation(90);
 						Sprite('line').addChildTo(group_line).setPosition(xL-(PANEL_SIZE/4)*3, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*1)).setRotation(90);
-//						Sprite('line').addChildTo(group_line).setPosition(xL-(PANEL_SIZE/4)*3, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*2)).setRotation(90);
-//						Sprite('line').addChildTo(group_line).setPosition(xL-(PANEL_SIZE/4)*3, yL + PANEL_SIZE/2 - PANEL_SIZE/4 - (PANEL_SIZE/2*3)).setRotation(90);
 					}
 				}
 			}
@@ -662,7 +628,7 @@ phina.define('Station', {
 // メイン処理
 phina.main(function() {
 	// アプリケーション生成
-	game_app = GameApp({
+	g_game_app = GameApp({
 		title: '東海道新幹線なんちゃって運行シミュレーター',
 		fps: 2.0,				// fps指定
 		startLabel: 'main',		// メインシーンから開始する
@@ -671,13 +637,12 @@ phina.main(function() {
 		assets: ASSETS,
 	});
 	// アプリケーション実行
-	game_app.run();
+	g_game_app.run();
 });
 
 // 設定パネルを表示する
 function show_setup_panel(scene) {
 	var isAndroid = navigator.userAgent.indexOf("Android") > 0;
-	var answer = false;
 	var setup_panel1 = Shape({
 		x: 0,
 		y: 0,
@@ -704,7 +669,7 @@ function show_setup_panel(scene) {
 		fontSize: 28,
 	}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
 	var label_updfreq_value = Label({
-		text: update_freauency + '秒',
+		text: g_update_freauency + '秒',
 		x: 6 + 16*13,
 		y: 32,
 		fontSize: 28,
@@ -771,93 +736,89 @@ function show_setup_panel(scene) {
 		fontSize: 24,
 	}).addChildTo(button_updfreq_real);
 	button_updfreq_minus.onclick = function() {
-		scene_main.click_ignore = true;
+		g_scene_main.click_ignore = true;
 		// －ボタンが押されたときの処理
-		if(update_freauency <= 1.0) {
+		if(g_update_freauency <= 1.0) {
 			if(! isAndroid) {
 				alert('更新頻度を1秒未満に設定することはできません。');
 			}
 			// console.log('更新頻度を1秒未満に設定することはできません。');
 			return;
 		}
-		answer = true;
+		let answer = true;
 		if(! isAndroid) {
-			answer = confirm('更新頻度を更新しますか？：1分=' + (update_freauency-1.0) + '秒');
+			answer = confirm('更新頻度を更新しますか？：1分=' + (g_update_freauency-1.0) + '秒');
 		}
 		if(answer) {
-			update_freauency -= 1.0;
-			demo = 0;
-			if(update_freauency != 60.0) {
-				demo = 1;
+			g_update_freauency -= 1.0;
+			g_demo = 0;
+			if(g_update_freauency != 60.0) {
+				g_demo = 1;
 			}
-			label_updfreq_value.text = update_freauency + '秒';
-			// console.log('accept updfreq_minus, ' + update_freauency + '秒');
-			scene_main.force_update = true;
-			scene_main.update();
+			label_updfreq_value.text = g_update_freauency + '秒';
+			// console.log('accept updfreq_minus, ' + g_update_freauency + '秒');
+			clearAllTrainStatus();
+			g_scene_main.force_update = true;
+			g_scene_main.update();
 		}
 	}
 	button_updfreq_plus.onclick = function() {
-		scene_main.click_ignore = true;
+		g_scene_main.click_ignore = true;
 		// ＋ボタンが押されたときの処理
-		answer = true;
+		let answer = true;
 		if(! isAndroid) {
-			answer = confirm('更新頻度を更新しますか？：1分=' + (update_freauency+1.0) + '秒');
+			answer = confirm('更新頻度を更新しますか？：1分=' + (g_update_freauency+1.0) + '秒');
 		}
 		if(answer) {
-			update_freauency += 1.0;
-			demo = 0;
-			if(update_freauency != 60.0) {
-				demo = 1;
+			g_update_freauency += 1.0;
+			g_demo = 0;
+			if(g_update_freauency != 60.0) {
+				g_demo = 1;
 			}
-			label_updfreq_value.text = update_freauency + '秒';
-			// console.log('accept updfreq_plus, ' + update_freauency + '秒');
-			scene_main.force_update = true;
-			scene_main.update();
+			label_updfreq_value.text = g_update_freauency + '秒';
+			// console.log('accept updfreq_plus, ' + g_update_freauency + '秒');
+			g_scene_main.force_update = true;
+			g_scene_main.update();
 		}
 	}
 	button_updfreq_second.onclick = function() {
-		scene_main.click_ignore = true;
+		g_scene_main.click_ignore = true;
 		// 1秒ボタンが押されたときの処理
-		answer = true;
+		let answer = true;
 		if(! isAndroid) {
 			answer = confirm('更新頻度を更新しますか？：1分=1秒');
 		}
 		if(answer) {
-			update_freauency = 1.0;
-			demo = 1;
-			label_updfreq_value.text = update_freauency + '秒';
-			// console.log('accept updfreq_second, ' + update_freauency + '秒');
-			scene_main.force_update = true;
-			scene_main.update();
+			g_update_freauency = 1.0;
+			g_demo = 1;
+			label_updfreq_value.text = g_update_freauency + '秒';
+			// console.log('accept updfreq_second, ' + g_update_freauency + '秒');
+			g_scene_main.force_update = true;
+			g_scene_main.update();
 		}
 	}
 	button_updfreq_real.onclick = function() {
-		scene_main.click_ignore = true;
+		g_scene_main.click_ignore = true;
 		// 現在時刻＆実時間ボタンが押されたときの処理
 		var curDate = new Date();
 		var dt = curDate.getFullYear()+'年'+('0'+(curDate.getMonth()+1)).slice(-2)+'月'+('0'+curDate.getDate()).slice(-2)+'日';
 		var tm = (' '+curDate.getHours()).slice(-2)+'時'+(' '+curDate.getMinutes()).slice(-2)+'分';
-		answer = true;
+		let answer = true;
 		if(! isAndroid) {
 			answer = confirm('更新頻度を更新しますか？：実時間(60秒)＆現在時刻：' + dt + ' ' + tm);
 		}
 		if(answer) {
-			demo = 0;
-			update_freauency = 60.0;
-			currentDate = new Date(curDate.getTime() - 60000);
-			startDate = currentDate;
-			scene.date.text = startDate.getFullYear()+'年'+('0'+(startDate.getMonth()+1)).slice(-2)+'月'+('0'+startDate.getDate()).slice(-2)+'日('+WEEKDAYS[startDate.getDay()]+')';
-			scene.time.text = (' '+startDate.getHours()).slice(-2)+'時'+(' '+startDate.getMinutes()).slice(-2)+'分';
-			label_updfreq_value.text = update_freauency + '秒';
-			// console.log('accept updfreq_real, ' + update_freauency + '秒, ' + scene.date.text + ' ' + scene.time.text);
-			for(i=0; i<trains.length; i++) {
-				if(trains[i].status[0] != TRAIN_OUTOF_RAIL) {
-					trains[i].force_update = true;
-					trains[i].update();
-				}
-			}
-			scene_main.force_update = true;
-			scene_main.update();
+			g_demo = 0;
+			g_update_freauency = 60.0;
+			g_current_date = new Date(curDate.getTime() - 60000);
+			g_start_date = g_current_date;
+			scene.date.text = g_start_date.getFullYear()+'年'+('0'+(g_start_date.getMonth()+1)).slice(-2)+'月'+('0'+g_start_date.getDate()).slice(-2)+'日('+WEEKDAYS[g_start_date.getDay()]+')';
+			scene.time.text = (' '+g_start_date.getHours()).slice(-2)+'時'+(' '+g_start_date.getMinutes()).slice(-2)+'分';
+			label_updfreq_value.text = g_update_freauency + '秒';
+			// console.log('accept updfreq_real, ' + g_update_freauency + '秒, ' + scene.date.text + ' ' + scene.time.text);
+			clearAllTrainStatus();
+			g_scene_main.force_update = true;
+			g_scene_main.update();
 		}
 	}
 	// 時刻設定
@@ -919,43 +880,33 @@ function show_setup_panel(scene) {
 			strokeWidth: 5,		// 枠太さ
 		}).addChildTo(setup_panel1).setOrigin(0.0, 0.5);
 		button_date_update.onclick = function() {
-			scene_main.click_ignore = true;
+			g_scene_main.click_ignore = true;
 			// 日付ボタンが押されたときの処理
-			answer = prompt('日付を入力して下さい(yyyy-mm-dd)：', currentDate.getFullYear()+'-'+(currentDate.getMonth()+1)+'-'+currentDate.getDate());
+			let answer = prompt('日付を入力して下さい(yyyy-mm-dd)：', g_current_date.getFullYear()+'-'+(g_current_date.getMonth()+1)+'-'+g_current_date.getDate());
 			if(answer) {
 				if(setCurrentDate(answer)) {
 					// console.log('accept date_update, ' + answer);
-					demo = 1;
-					for(i=0; i<trains.length; i++) {
-						if(trains[i].status[0] != TRAIN_OUTOF_RAIL) {
-							trains[i].force_update = true;
-							trains[i].update();
-						}
-					}
-					scene_main.force_update = true;
-					scene_main.update();
+					g_demo = 1;
+					clearAllTrainStatus();
+					g_scene_main.force_update = true;
+					g_scene_main.update();
 				} else {
 					alert('日付の形式に誤りがあります。' + answer);
 				}
-				scene.date.text = currentDate.getFullYear()+'年'+('0'+(currentDate.getMonth()+1)).slice(-2)+'月'+('0'+currentDate.getDate()).slice(-2)+'日('+WEEKDAYS[currentDate.getDay()]+')';
+				scene.date.text = g_current_date.getFullYear()+'年'+('0'+(g_current_date.getMonth()+1)).slice(-2)+'月'+('0'+g_current_date.getDate()).slice(-2)+'日('+WEEKDAYS[g_current_date.getDay()]+')';
 			}
 		}
 		button_time_update.onclick = function() {
-			scene_main.click_ignore = true;
+			g_scene_main.click_ignore = true;
 			// 時刻変更ボタンが押されたときの処理
-			answer = prompt('時刻を入力して下さい(hh:mm)：', getCurrentTime(false));
+			let answer = prompt('時刻を入力して下さい(hh:mm)：', getCurrentTime(false));
 			if(answer) {
-				if(setCurrentTime(answer)) {
+				if(setCurrentTime(minusTime(answer, '00:01'))) {
 					// console.log('accept time_update, ' + answer);
-					demo = 1;
-					for(i=0; i<trains.length; i++) {
-						if(trains[i].status[0] != TRAIN_OUTOF_RAIL) {
-							trains[i].force_update = true;
-							trains[i].update();
-						}
-					}
-					scene_main.force_update = true;
-					scene_main.update();
+					g_demo = 1;
+					clearAllTrainStatus();
+					g_scene_main.force_update = true;
+					g_scene_main.update();
 				} else {
 					alert('時刻の形式に誤りがあります。' + answer);
 				}
@@ -977,29 +928,23 @@ function show_setup_panel(scene) {
 		strokeWidth: 5,		// 枠太さ
 	}).addChildTo(setup_panel2).setOrigin(0.0, 0.5).setInteractive(true);
 	button_balloon_show.onclick = function() {
-		scene_main.click_ignore = true;
+		g_scene_main.click_ignore = true;
 		// 走行時バルーン表示ボタンが押されたときの処理
-		answer = true;
+		let answer = true;
 		if(! isAndroid) {
 			answer = confirm('走行時のバルーン表示を変更しますか？');
 		}
 		if(answer) {
 			if(this.text.substr(0, 1) == '□') {
-				this.text = 'レ 走行時のバルーン表示';
-				TRAIN_STATUS[TRAIN_RUNNING][1] = true;
+				this.text = '☒ 走行時のバルーン表示';
+				TRAIN_STATUS[TRAIN_RUNNING][TS_BALLOON] = true;
 			} else {
 				this.text = '□ 走行時のバルーン表示';
-				TRAIN_STATUS[TRAIN_RUNNING][1] = false;
+				TRAIN_STATUS[TRAIN_RUNNING][TS_BALLOON] = false;
 			}
 			// console.log('accept balloon_show, ' + this.text);
-			for(i=0; i<trains.length; i++) {
-				if(trains[i].status[0] != TRAIN_OUTOF_RAIL) {
-					trains[i].force_update = true;
-					trains[i].update();
-				}
-			}
-			scene_main.force_update = true;
-			scene_main.update();
+			g_scene_main.force_update = true;
+			g_scene_main.update();
 		}
 	}
 	return true;
@@ -1008,23 +953,30 @@ function show_setup_panel(scene) {
 /*------------------------*/
 /* 以降は普通のJavaScript */
 /*------------------------*/
-// 駅舎の位置(X)を緯度・経度から計算する
-function calcStationsGridX(stations) {
+// 駅舎の距離を緯度・経度から計算する（単位はKm）
+function calcStationsDistance(stations) {
+	var distance = {};
 	var total_distance = 0;
-	var stations_distance = Array(STATIONS.length);
-	stations_distance[0] = 0;
-	for(i=1; i<STATIONS.length; i++) {
-		stations_distance[i] = calcDistance(stations[i][5], stations[i-1][5]);
-		total_distance += stations_distance[i];
+	for(let i=1; i<STATIONS.length; i++) {
+		var d = calcDistance(stations[i][5], stations[i-1][5]);
+		distance[(i-1)+'-'+i] = d;
+		distance[i+'-'+(i-1)] = d;
+		total_distance += d;
 	}
-	// console.log('total_distance: ' + total_distance);
-	var panel_distance = total_distance / (PANEL_NUM_X-3+1);
+	distance['total'] = total_distance;
+	// console.log(distance);
+	return distance
+}
+// 駅舎の位置(X)を緯度・経度から計算する
+function calcStationsGridX(stations, distance) {
+	var panel_distance = distance['total']
+			/ (stations[0][2]-stations[stations.length-1][2]);
 	var station_distance = 0;
-	for(i=(STATIONS.length-2); i>0; i--) {
-		station_distance += stations_distance[i+1];
-		stations[i][2] = station_distance / panel_distance;
+	for(let i=(STATIONS.length-2); i>0; i--) {
+		station_distance += distance[i+'-'+(i+1)];
+		stations[i][2] = station_distance / panel_distance
+				+ stations[stations.length-1][2];
 	}
-	stations[STATIONS.length-2][2] += 2;
 	return stations;
 }
 function calcDistance(LatLng1, LatLng2) {
@@ -1111,40 +1063,57 @@ function get_timetable() {
 	// console.log('get_timetable() ended.');
 }
 
+// 全列車の状態をクリアする
+function clearAllTrainStatus() {
+	for(let i=0; i<g_trains_down.length; i++) {
+		clearTrainStatus(g_trains_down[i]);
+	}
+	for(let i=0; i<g_trains_up.length; i++) {
+		clearTrainStatus(g_trains_up[i]);
+	}
+	return true;
+}
+function clearTrainStatus(train) {
+	train.status = TRAIN_STATUS[TRAIN_OUTOF_RAIL];
+	train.train_location = -1.0;
+	train.train_st_id = -1;
+	train.balloon.hide();
+	train.balloon.setInteractive(false);
+	train.hide();
+	return true;
+}
+
 // 列車を更新する
-function updateTrain(train, diagram) {
-	var rc = 0;
+function updateTrain(train) {
+	var show_count = 0;
 	var cDate = getCurrentDate(0, 0);
 	var cTime = getCurrentTime(false);
 	if(!is_operating_datetime(train.diagram, cDate, cTime)) {
 		// 走行時間外
-		if(train.status[0] != TRAIN_OUTOF_RAIL) {
-			train.status = TRAIN_STATUS[TRAIN_OUTOF_RAIL];
-			train.balloon.hide();
-			train.balloon.setInteractive(false);
-			train.hide();
-			rc = -1;
+		if(train.status[TS_ID] != TRAIN_OUTOF_RAIL) {
+			clearTrainStatus(train);
+			show_count = -1;
 		}
 	} else {
-		if(train.status[0] == TRAIN_OUTOF_RAIL) {
+		if(train.status[TS_ID] == TRAIN_OUTOF_RAIL) {
 			train.status = TRAIN_STATUS[TRAIN_INTO_RAIL];
 			train.balloon.hide();
 			train.balloon.setInteractive(false);
 			train.show();
-			rc = 1;
+			show_count = 1;
 		}
 		var xPos = calcTrainPosition(train);
 		if(xPos != -1) {
 			train.moveTo(xPos, train.y, 1000);
 		}
-		if(train.status[1]) {
-			var msg = train.status[2];
+		if(train.status[TS_BALLOON]) {
+			var msg = train.status[TS_MESSAGE];
 			msg = msg.replace('{{train}}', train.name_msg);
 			msg = msg.replace('{{from}}', train.diagram['property'][3]);
 			msg = msg.replace('{{to}}', train.diagram['property'][4]);
-			msg = msg.replace('{{station}}', STATIONS[train.status[3]][1].replace('\n', ''));
-			if(train.status[4] >= 0) {
-				msg = msg.replace('{{next}}', STATIONS[train.status[4]][1].replace('\n', ''));
+			msg = msg.replace('{{station}}', STATIONS[train.status[TS_STATION]][1].replace('\n', ''));
+			if(train.status[TS_NEXT] >= 0) {
+				msg = msg.replace('{{next}}', STATIONS[train.status[TS_NEXT]][1].replace('\n', ''));
 			}
 			train.balloon.text = msg;
 			train.balloon.show();
@@ -1154,20 +1123,26 @@ function updateTrain(train, diagram) {
 			train.balloon.setInteractive(false);
 		}
 	}
-	return rc;
+	// 列車位置調整、表示列車数
+	if(train.diagram['property'][0] == 'down') {
+		g_train_down_count += show_count;
+	} else {
+		g_train_up_count += show_count;
+	}
+	return 0;
 }
 
 // 現在日時を取得する
 function getCurrentDate(start, update) {
 	var cDate = new Date();
-	if(demo == 1) {
+	if(g_demo == 1) {
 		if(start == 1) {
 			cDate.setHours(5);
 			cDate.setMinutes(53);
 		} else {
-			var diff = cDate.getTime() - realDate.getTime();
-			cDate.setTime(currentDate.getTime());
-			if((diff/1000) >= update_freauency) {
+			var diff = cDate.getTime() - g_real_date.getTime();
+			cDate.setTime(g_current_date.getTime());
+			if((diff/1000) >= g_update_freauency) {
 				if(update == 1) {
 					cDate.setMinutes(cDate.getMinutes() + 1);
 				}
@@ -1196,21 +1171,21 @@ function setCurrentDate(dt) {
 		// alert('日付の形式に誤りがあるます。' + dt);
 		return false;
 	}
-	currentDate.setFullYear(parseInt(dt_array[0]));
-	currentDate.setMonth(parseInt((dt_array[1]-1)));
-	currentDate.setDate(parseInt(dt_array[2]));
+	g_current_date.setFullYear(parseInt(dt_array[0]));
+	g_current_date.setMonth(parseInt((dt_array[1]-1)));
+	g_current_date.setDate(parseInt(dt_array[2]));
 	return true;
 }
 
 // 現在時刻を取得する
 function getCurrentTime(sec) {
 	if(sec) {
-		return ('0'+currentDate.getHours()).slice(-2)
-				+':'+('0'+currentDate.getMinutes()).slice(-2)
-				+':'+('0'+currentDate.getSeconds()).slice(-2);
+		return ('0'+g_current_date.getHours()).slice(-2)
+				+':'+('0'+g_current_date.getMinutes()).slice(-2)
+				+':'+('0'+g_current_date.getSeconds()).slice(-2);
 	} else {
-		return ('0'+currentDate.getHours()).slice(-2)
-				+':'+('0'+currentDate.getMinutes()).slice(-2);
+		return ('0'+g_current_date.getHours()).slice(-2)
+				+':'+('0'+g_current_date.getMinutes()).slice(-2);
 	}
 }
 
@@ -1234,10 +1209,10 @@ function setCurrentTime(tm) {
 		// alert('時刻の形式に誤りがあるます。' + tm);
 		return false;
 	}
-	currentDate.setHours(parseInt(tm_array[0]));
-	currentDate.setMinutes(parseInt(tm_array[1]));
+	g_current_date.setHours(parseInt(tm_array[0]));
+	g_current_date.setMinutes(parseInt(tm_array[1]));
 	if(tm_array.length == 3) {
-		currentDate.setSeconds(parseInt(tm_array[2]));
+		g_current_date.setSeconds(parseInt(tm_array[2]));
 	}
 	return true;
 }
@@ -1273,40 +1248,62 @@ function calcTrainPosition(train) {
 	var cDate = getCurrentDate(0, 0);
 	var cTime = getCurrentTime(false);
 	// console.log('calcTrainPosition() start, train=' + train.name + ', cTime=' + cTime);
-	if(!is_operating_datetime(train.diagram, cDate, cTime)) {
+	if(! is_operating_datetime(train.diagram, cDate, cTime)) {
 		return xPos;
 	}
 	var msg = '';
 	var st_id = 0;
-	for(var i=0; i<train.diagram['timeLine'].length; i++) {
-		if(train.diagram['timeLine'][i][1] <= cTime
-		&& train.diagram['timeLine'][i][2] >= cTime) {
+	for(let tl_i=0; tl_i<train.diagram['timeLine'].length; tl_i++) {
+		var st_key = '';
+		if(train.diagram['timeLine'][tl_i][1] <= cTime
+		&& train.diagram['timeLine'][tl_i][2] >= cTime) {
 			// 駅に停車中
-			st_id = train.diagram['timeLine'][i][0];
-			if(train.diagram['timeLine'][i][2] == cTime
-			&& i+1 < train.diagram['timeLine'].length) {
+			st_id = train.diagram['timeLine'][tl_i][0];
+			train.train_st_id = st_id;
+			let from_st_id = 0;
+			let to_st_id = st_id;
+			if(train.diagram['property'][0] == 'up') {
+				from_st_id = st_id;
+				to_st_id = STATIONS.length - 1;
+			}
+			train.train_location = 0.0;
+			for(let id=from_st_id; id<to_st_id; id++) {
+				let key = id + '-' + (id+1);
+				train.train_location += STATIONS_DISTANCE[key];
+			}
+
+			if(train.diagram['timeLine'][tl_i][3] == 1) {
+				// 通過駅
+				xPos = g_stations[train.diagram['timeLine'][tl_i][0]].x;
+				if(train.diagram['property'][0] == 'up') {
+					xPos -= (STATION_SIZE[0]/2) + (GRID_SIZE/2);
+				}
+				return xPos;
+			}
+			if(train.diagram['timeLine'][tl_i][2] == cTime
+			&& tl_i+1 < train.diagram['timeLine'].length) {
 				// 発車
 				train.status = TRAIN_STATUS[TRAIN_START];
 				msg = '停車中（発車時刻）';
 			} else
-			if(minusTime(train.diagram['timeLine'][i][2], '0:01') == cTime
-			&& i+1 < train.diagram['timeLine'].length) {
+			if(minusTime(train.diagram['timeLine'][tl_i][2], '0:01') == cTime
+			&& tl_i+1 < train.diagram['timeLine'].length) {
 				// 発車１分前
 				train.status = TRAIN_STATUS[TRAIN_SOON_START];
 				msg = '停車中（発車１分前）';
 			} else
-			if(i == 0) {
+			if(tl_i == 0) {
 				// 始発駅に入線
 				train.status = TRAIN_STATUS[TRAIN_INTO_RAIL];
 				msg = '停車中（始発駅）';
 			} else
-			if(i+1 == train.diagram['timeLine'].length
-			&& STATIONS[train.diagram['timeLine'][i][0]][1] == train.diagram['property'][4]) {
+			if(tl_i+1 == train.diagram['timeLine'].length
+			&& STATIONS[train.diagram['timeLine'][tl_i][0]][1] == train.diagram['property'][4]) {
 				// 終着駅に停車中
 				train.status = TRAIN_STATUS[TRAIN_ARRIVAL];
 				msg = '停車中（終着駅）';
 			} else
-			if(train.diagram['timeLine'][i][1] == cTime) {
+			if(train.diagram['timeLine'][tl_i][1] == cTime) {
 				// 到着
 				train.status = TRAIN_STATUS[TRAIN_STOP_STATION];
 				msg = '停車中（到着時刻）';
@@ -1315,33 +1312,40 @@ function calcTrainPosition(train) {
 				train.status = TRAIN_STATUS[TRAIN_STOPPING];
 				msg = '停車中（停車中）';
 			}
-			train.status[3] = st_id;
-			train.status[4] = -1;
-			if(i+1 < train.diagram['timeLine'].length) {
-				train.status[4] = train.diagram['timeLine'][i+1][0];
+			train.status[TS_STATION] = st_id;
+			train.status[TS_NEXT] = -1;
+			for(let j=tl_i+1; j<train.diagram['timeLine'].length; j++) {
+				if(train.diagram['timeLine'][j][3] == 0) {
+					train.status[TS_NEXT] = train.diagram['timeLine'][j][0];
+					break;
+				}
 			}
 			if(train.diagram['property'][0] == 'up') {
-				xPos = stations[st_id].x - (STATION_SIZE[0]/2) - (GRID_SIZE/2);
+				xPos = g_stations[st_id].x - (STATION_SIZE[0]/2) - (GRID_SIZE/2) - 4;
 			} else {
-				xPos = stations[st_id].x;
+				xPos = g_stations[st_id].x;
 			}
-			// console.log('stoping xPos=' + xPos + ', ' + train.diagram['timeLine'][i].join(','));
+			// console.log('stoping xPos=' + xPos + ', ' + train.diagram['timeLine'][tl_i].join(','));
 			break;
-		} else if(i+1 < train.diagram['timeLine'].length) {
-			if(train.diagram['timeLine'][i][2] < cTime
-			&& train.diagram['timeLine'][i+1][1] > cTime) {
+		} else if(tl_i+1 < train.diagram['timeLine'].length) {
+			if(train.diagram['timeLine'][tl_i][2] < cTime
+			&& train.diagram['timeLine'][tl_i+1][1] > cTime) {
 				// 次の駅の間
-				st_id = train.diagram['timeLine'][i][0];
-				if(minusTime(train.diagram['timeLine'][i+1][1], '0:03') <= cTime) {
+				st_id = train.diagram['timeLine'][tl_i][0];
+				if(train.diagram['timeLine'][tl_i+1][3] == 0
+				&& minusTime(train.diagram['timeLine'][tl_i+1][1], '0:03') <= cTime) {
 					// 到着３分前
 					train.status = TRAIN_STATUS[TRAIN_SOON_STOP];
-					if(i+1 == train.diagram['timeLine'].length
-					&& STATIONS[train.diagram['timeLine'][i+1][0]][1] == train.diagram['property'][4]) {
+					train.status[TS_TIME] = parseInt(minusTime(cTime,
+								minusTime(train.diagram['timeLine'][tl_i+1][1], '0:03')).slice(-1));
+					if(tl_i+1 == train.diagram['timeLine'].length
+					&& STATIONS[train.diagram['timeLine'][tl_i+1][0]][1] == train.diagram['property'][4]) {
 						train.status = TRAIN_STATUS[TRAIN_SOON_ARRIVAL];
 					}
 					msg = '走行中（到着３分前）';
 				} else
-				if(plusTime(train.diagram['timeLine'][i][2], '0:01') == cTime) {
+				if(train.diagram['timeLine'][tl_i][3] == 0
+				&& plusTime(train.diagram['timeLine'][tl_i][2], '0:01') == cTime) {
 					// 駅を出発直後
 					train.status = TRAIN_STATUS[TRAIN_RUNNING];
 					msg = '走行中（出発直後）';
@@ -1350,26 +1354,106 @@ function calcTrainPosition(train) {
 					train.status = TRAIN_STATUS[TRAIN_RUNNING];
 					msg = '走行中（駅間を走行中）';
 				}
-				train.status[3] = st_id;
-				train.status[4] = train.diagram['timeLine'][i+1][0];
-				var st_id2 = train.diagram['timeLine'][i+1][0];
-				var xPos1 = stations[st_id].x;
-				var xPos2 = stations[st_id2].x;
-				var span = xPos2 - xPos1 - 1;
-				if(train.diagram['property'][0] == 'down') {
-					span = xPos1 - xPos2 - 1;
+				train.status[TS_STATION] = st_id;
+				for(let j=tl_i+1; j<train.diagram['timeLine'].length; j++) {
+					if(train.diagram['timeLine'][j][3] == 0) {
+						train.status[TS_NEXT] = train.diagram['timeLine'][j][0];
+						break;
+					}
 				}
-				xPos = getPositionTime(span,
-						train.diagram['timeLine'][i][2],
-						train.diagram['timeLine'][i+1][1],
-						cTime
-				);
+				// 列車の位置を計算する
+				let from_st_id = 0;
+				let to_st_id = st_id;
 				if(train.diagram['property'][0] == 'up') {
-					xPos += stations[st_id].x - (STATION_SIZE[0]/2) - (GRID_SIZE/2);
-				} else {
-					xPos = stations[st_id].x - xPos;
+					from_st_id = st_id;
+					to_st_id = STATIONS.length - 1;
 				}
-				// console.log('running xPos=' + xPos + ', ' + [span, train.diagram['timeLine'][i][2], train.diagram['timeLine'][i+1][1], cTime].join(','));
+				let new_location = 0.0;
+				for(let id=from_st_id; id<to_st_id; id++) {
+					let key = id + '-' + (id+1);
+					new_location += STATIONS_DISTANCE[key];
+				}
+				// console.log('new_location(1)=' + new_location);
+				let st_id2 = train.diagram['timeLine'][tl_i+1][0];
+				from_st_id = st_id;
+				to_st_id = st_id2;
+				if(train.diagram['property'][0] == 'up') {
+					from_st_id = st_id2;
+					to_st_id = st_id;
+				}
+				let distance = 0.0;
+				for(let id=from_st_id; id<to_st_id; id++) {
+					let key = id + '-' + (id+1);
+					distance += STATIONS_DISTANCE[key];
+				}
+				let save_location = new_location;
+				new_location += getPositionByTime(distance,
+						train.diagram['timeLine'][tl_i][2],
+						train.diagram['timeLine'][tl_i+1][1],
+						cTime);
+				let key = st_id + '-' + st_id2;
+				// ToDo:現在のlocationから新ロケーションの間のこだま号が居たら駅で停車中かを確認する！
+				if(train.train_location != -1.0) {
+					let trains = g_trains_down;
+					if(train.diagram['property'][0] == 'up') {
+						trains = g_trains_up;
+					}
+					for(let j=0; j<trains.length; j++) {
+						if(trains[j].status[TS_ID] == TRAIN_OUTOF_RAIL
+						|| trains[j].name == train.name
+						|| trains[j].name.substr(0,3) == 'のぞみ') {
+							continue;
+						}
+						if(trains[j].train_location <= new_location
+						&& trains[j].train_location >= train.train_location) {
+							// 前方車両を追い抜こうとしている！
+							// console.log(train.name + 'が' + trains[j].name + 'を追い抜こうとしている！' + ' st=' + STATIONS[st_id][1]);
+							// console.log(train.name + ': train_location=' + train.train_location + ', new_location=' + new_location + ', train_st_id=' + train.train_st_id + ', key=' + key + ', distance=' + distance);
+							// console.log(trains[j].name + ': trains[' + j + '].train_location=' + trains[j].train_location + ', train_st_id=' + trains[j].train_st_id + ', status=' + trains[j].status.join(','));
+							if((trains[j].status[TS_ID] == TRAIN_SOON_START
+							 || trains[j].status[TS_ID] == TRAIN_STOP_STATION
+							 || trains[j].status[TS_ID] == TRAIN_STOPPING)
+							&& STATIONS[trains[j].status[TS_ID]][1] != '熱海') {
+								// 熱海以外で停車中の列車は追い抜ける！→そのまま
+							} else
+							if(trains[j].status[TS_ID] == TRAIN_START
+							|| trains[j].status[TS_ID] == TRAIN_RUNNING
+							|| trains[j].status[TS_ID] == TRAIN_SOON_STOP) {
+								// 列車が走行中は抜けない！→2,4,6Km後方に着ける
+								new_location = trains[j].train_location - 6;
+								if(trains[j].status[TS_ID] == TRAIN_SOON_STOP) {
+									new_location = trains[j].train_location - (trains[j].status[TS_TIME] * 2);
+								}
+								// console.log(train.name + ':' + trains[j].name + 'が走行中は抜けない！→2,4,6Km後方に着ける=' + cTime + ', new_location=' + new_location);
+							} else {
+								// その他は抜けない！
+								new_location = trains[j].train_location - 2;
+							}
+						} else
+						if(trains[j].train_location <= (new_location + 7)
+						&& trains[j].train_location >= train.train_location
+						&& train.train_st_id != 0
+						&& STATIONS[trains[j].status[TS_ID]][1] != '熱海'
+						&& trains[j].status[TS_ID] == TRAIN_SOON_START) {
+							// 発車前ぎりぎりの場合は抜く！
+							new_location = trains[j].train_location + 2;
+							// console.log(train.name + ':' + trains[j].name + 'が発車前ぎりぎりで抜く！→3Km先に着ける=' + cTime + ', new_location=' + new_location);
+						}
+					}
+				}
+				if(new_location > train.train_location) {
+					train.train_location = new_location;
+				} else {
+					train.train_location += 4;
+				}
+				let xSpan = g_stations[0].x - g_stations[g_stations.length-1].x;
+				xPos = getPositionByLocation(xSpan, train.train_location);
+				if(train.diagram['property'][0] == 'up') {
+					xPos += g_stations[g_stations.length-1].x - STATION_SIZE[0]/2 - (GRID_SIZE/2) - 4;
+				} else {
+					xPos = g_stations[0].x - xPos;
+				}
+				// console.log('running xPos=' + xPos + ', ' + [span, train.diagram['timeLine'][tl_i][2], train.diagram['timeLine'][tl_i+1][1], cTime].join(','));
 				break;
 			}
 		}
@@ -1378,9 +1462,9 @@ function calcTrainPosition(train) {
 	return xPos;
 }
 
-// 駅間の場所を求める
-function getPositionTime(span, time1, time2, ctime) {
-	// console.log('getPositionTime() start.');
+// 駅間の描画位置を時間差から求める
+function getPositionByTime(span, time1, time2, ctime) {
+	// console.log('getPositionByTime() start.');
 	var hm1 = time1.split(':');
 	var hm2 = time2.split(':');
 	var hmc = ctime.split(':');
@@ -1392,7 +1476,15 @@ function getPositionTime(span, time1, time2, ctime) {
 	var tc = new Date(ct.getFullYear(), ct.getMonth(), ct.getDate(),
 				parseInt(hmc[0],10), parseInt(hmc[1],10)+1, ct.getSeconds());
 	var xPos = span * ((tc.getTime() - t1.getTime()) / (t2.getTime() - t1.getTime()));
-	// console.log('getPositionTime() ended, xPos=' + xPos);
+	// console.log('getPositionByTime() ended, xPos=' + xPos);
+	return xPos;
+}
+
+// 駅間の描画位置を現在距離から求める
+function getPositionByLocation(span, loc) {
+	// console.log('getPositionByLocation() start.');
+	var xPos = span * (loc / STATIONS_DISTANCE['total']);
+	// console.log('getPositionByLocation() ended, xPos=' + xPos);
 	return xPos;
 }
 
@@ -1416,7 +1508,7 @@ function get_station_taimetable(id, up_down) {
 	var rem = {};
 	for(let key in diagram) {
 		if(key == 'property') continue;
-		for(i=0; i<(diagram[key]['timeLine'].length-1); i++) {
+		for(let i=0; i<(diagram[key]['timeLine'].length-1); i++) {
 			if(diagram[key]['timeLine'][i][0] == id) {
 				tt_hm[diagram[key]['timeLine'][i][2]] = [diagram[key]['timeLine'][i][1], key];
 			}
@@ -1431,7 +1523,7 @@ function get_station_taimetable(id, up_down) {
 	}
 	for(const h of Object.keys(tt_h).sort()) {
 		var tt_m = '';
-		for(i=0; i<tt_h[h].length; i++) {
+		for(let i=0; i<tt_h[h].length; i++) {
 			if(tt_m != '') {
 				tt_m += ' ';
 			}
@@ -1474,7 +1566,10 @@ function get_train_taimetable(name, up_down) {
 	}
 	tt += diagram[name]['property'][3] + '発 ' + diagram[name]['property'][4] + '行';
 	tt += '\n-------';
-	for(i=0; i<diagram[name]['timeLine'].length; i++) {
+	for(let i=0; i<diagram[name]['timeLine'].length; i++) {
+		if(diagram[name]['timeLine'][i][3] == 1) {
+			continue;
+		}
 		tt += '\n' + ('　　'+STATIONS[diagram[name]['timeLine'][i][0]][1]).slice(-4) + '駅：';
 		if(i == 0) {
 			tt += '　　　　　';
