@@ -1081,6 +1081,8 @@ function clearAllTrainStatus() {
 	for(let i=0; i<g_trains_up.length; i++) {
 		clearTrainStatus(g_trains_up[i]);
 	}
+	g_train_down_count = 0;
+	g_train_up_count = 0;
 	return true;
 }
 function clearTrainStatus(train) {
