@@ -134,6 +134,7 @@ var ASSETS = {
 	},
 }
 WEEKDAYS = ['日','月','火','水','木','金','土'];
+DEBUG_TRAINS = [];
 
 // グローバル変数
 var g_game_app = null;
@@ -329,40 +330,28 @@ phina.define('MainScene', {
 			this.date.text = g_current_date.getFullYear()+'年'+('0'+(g_current_date.getMonth()+1)).slice(-2)+'月'+('0'+g_current_date.getDate()).slice(-2)+'日('+WEEKDAYS[g_current_date.getDay()]+')';
 			this.time.text = hm[0]+'時'+hm[1]+'分';
 			// console.log('MainScene.update: ' + cTime);
-			// こだま号→ひかり号→のぞみ号の順で更新する
+			// 先に進んでいる列車を先に更新する
 			let trains_update = [];
-			for(let i=0; i<g_trains_down.length; i++) {
-				if(g_trains_down[i].name.substr(0,3) == 'こだま') {
-					trains_update.push(g_trains_down[i]);
-				}
+			for(let i=0; i<g_trains_down.length; i++)  {
+				trains_update.push(g_trains_down[i]);
 			}
-			for(let i=0; i<g_trains_up.length; i++) {
-				if(g_trains_up[i].name.substr(0,3) == 'こだま') {
-					trains_update.push(g_trains_up[i]);
-				}
+			trains_update.sort((a, b) => {	// 降順ソート
+				if(a.train_location < b.train_location) return 1;
+				if(a.train_location > b.train_location) return -1;
+				return 0;
+			});
+			for(let i=0; i<trains_update.length; i++) {
+				updateTrain(trains_update[i]);
 			}
-			// ひかり号を加える
-			for(let i=0; i<g_trains_down.length; i++) {
-				if(g_trains_down[i].name.substr(0,3) == 'ひかり') {
-					trains_update.push(g_trains_down[i]);
-				}
+			trains_update = [];
+			for(let i=0; i<g_trains_up.length; i++)  {
+				trains_update.push(g_trains_up[i]);
 			}
-			for(let i=0; i<g_trains_up.length; i++) {
-				if(g_trains_up[i].name.substr(0,3) == 'ひかり') {
-					trains_update.push(g_trains_up[i]);
-				}
-			}
-			// のぞみ号を加える
-			for(let i=0; i<g_trains_down.length; i++) {
-				if(g_trains_down[i].name.substr(0,3) == 'のぞみ') {
-					trains_update.push(g_trains_down[i]);
-				}
-			}
-			for(let i=0; i<g_trains_up.length; i++) {
-				if(g_trains_up[i].name.substr(0,3) == 'のぞみ') {
-					trains_update.push(g_trains_up[i]);
-				}
-			}
+			trains_update.sort((a, b) => {	// 降順ソート
+				if(a.train_location < b.train_location) return 1;
+				if(a.train_location > b.train_location) return -1;
+				return 0;
+			});
 			for(let i=0; i<trains_update.length; i++) {
 				updateTrain(trains_update[i]);
 			}
@@ -1406,7 +1395,7 @@ function calcTrainPosition(train) {
 						train.diagram['timeLine'][tl_i+1][1],
 						cTime);
 				new_location += xPos_ratio[0];
-				if(false) {
+				if(DEBUG_TRAINS.indexOf(train.name) != -1) {
 					console.log(train.name + ': train_location=' + train.train_location + ', new_location=' + new_location + ', train_st_id=' + train.train_st_id + ', save_location=' + save_location + ', distance=' + distance + ', times=(' + train.diagram['timeLine'][tl_i][2] + ',' + train.diagram['timeLine'][tl_i+1][1] + ',' + cTime + ')' + ', xPos_ratio=' + xPos_ratio.join(','));
 				}
 				let key = st_id + '-' + st_id_next;
@@ -1425,7 +1414,7 @@ function calcTrainPosition(train) {
 						if(trains[j].train_location <= new_location
 						&& trains[j].train_location >= train.train_location) {
 							// 前方車両を追い抜こうとしている！
-							if(false) {
+							if(DEBUG_TRAINS.indexOf(train.name) != -1) {
 								console.log(train.name + 'が' + trains[j].name + 'を追い抜こうとしている！' + ' st=' + STATIONS[st_id][1]);
 								console.log(train.name + ': train_location=' + train.train_location + ', new_location=' + new_location + ', train_st_id=' + train.train_st_id + ', key=' + key + ', distance=' + distance);
 								console.log(trains[j].name + ': trains[' + j + '].train_location=' + trains[j].train_location + ', train_st_id=' + trains[j].train_st_id + ', status=' + trains[j].status.join(','));
@@ -1450,7 +1439,7 @@ function calcTrainPosition(train) {
 								new_location = trains[j].train_location - 2;
 							}
 						} else
-						if(trains[j].train_location <= (new_location + 11)
+						if(trains[j].train_location <= (new_location + 14)
 						&& trains[j].train_location >= train.train_location
 						&& train.train_st_id != 0
 						&& trains[j].status[TS_STATION] != st_id_next
@@ -1461,7 +1450,7 @@ function calcTrainPosition(train) {
 						 && STATIONS[trains[j].status[TS_STATION]][1] != '名古屋')) {
 							// 発車前ぎりぎりの場合は抜く！
 							new_location = trains[j].train_location + 2;
-							if(false) {
+							if(DEBUG_TRAINS.indexOf(train.name) != -1) {
 								console.log(train.name + ':' + trains[j].name + 'が発車前ぎりぎりで抜く！→2Km先に着ける=' + cTime + ', st_id=' + st_id + ', st_id_next=' + st_id_next + ', new_location=' + new_location + ', [j].status=' + trains[j].status.join(','));
 							}
 						}
