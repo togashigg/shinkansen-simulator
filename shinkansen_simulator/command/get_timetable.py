@@ -108,8 +108,12 @@ class timetable:
             logger.info('maked cache directory: ' + self.cache_dir)
         # 今日が1日ならキャッシュを削除する
         if self.today[-2:] == '01':
-            for file_name in os.listdir(self.cache_dir):
-                os.remove(os.path.join(self.cache_dir, file_name))
+            cleared_file = os.path.join(self.cache_dir, 'cleared_' + self.today)
+            if not os.path.exists(cleared_file):
+                for file_name in os.listdir(self.cache_dir):
+                    os.remove(os.path.join(self.cache_dir, file_name))
+                with open(cleared_file, 'w') as fh:
+                    fh.write('')
             logger.info('cleared in cache directory: ' + self.cache_dir)
         logger.info('initialize() ended.')
         # 復帰
@@ -125,8 +129,8 @@ class timetable:
         stations_timetable = {}
         station_i = 0
         for station in STATIONS:
-            logger.info('各駅の時刻表取得：' + station)
             station_i += 1
+            logger.info('各駅の時刻表取得：' + station  + '  ' + str(station_i) + '/' + str(len(STATIONS)))
             station_encode = urllib.parse.quote(station, encoding='euc_jp').lower()
             # 各駅の下りの出発時刻
             file_name = os.path.join(self.cache_dir, station + '_' + self.today + '_down.html')
@@ -144,7 +148,8 @@ class timetable:
                 for try_i in range(self.__requests_retry_max):
                     try_ok = False
                     try:
-                        res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
+                        # res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
+                        res = requests.get(get_url)
                         try_ok = True
                     except requests.exceptions.ProxyError as e:
                         logger.warning('except ProxyError!')
@@ -179,7 +184,8 @@ class timetable:
                 for try_i in range(self.__requests_retry_max):
                     try_ok = False
                     try:
-                        res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
+                        # res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
+                        res = requests.get(get_url)
                         try_ok = True
                     except requests.exceptions.ProxyError as e:
                         logger.warning('except ProxyError!')
@@ -248,10 +254,11 @@ class timetable:
         # 復帰
         return trains
 
-    def get_trains_timetable(self, trains):
+    def get_trains_timetable(self, trains, remarks):
         """
         列車一覧から列車毎の時刻表を取得する。
         :param trains: dict型、列車一覧、例：{'こだま723号': 'down', ... }
+        :param remarks: dict型、特記事項、例：{'こだま802号': {'updown': 'up', '事項': '土曜・休日運休', '運転日': [], '運休日': [,,,]}}
         :return: dict型、列車毎の時刻表
         """
         logger = getLogger(__name__)
@@ -260,10 +267,10 @@ class timetable:
         train_i = 0
         for train in trains.keys():
             train_i += 1
+            logger.info('各列車の時刻表取得：' + train  + '  ' + str(train_i) + '/' + str(len(trains)))
             if train[:3] not in TRAIN_TYPES:
                 logger.error('対象外車種？：' + train)
                 continue
-            logger.info(train)
             trains_timetable[train] = ''
             train_type = TRAIN_TYPES[train[:3]]
             train_no = train[3:-1]
@@ -272,6 +279,15 @@ class timetable:
                 with open(file_name, 'r') as t_h:
                     trains_timetable[train] = t_h.read()
             else:
+                if train in remarks:
+                    if '事項' in remarks[train]:
+                        if remarks[train]['事項'][0] == '◆':
+                            if '運転日' in remarks[train] and len(remarks[train]['運転日']) > 0:
+                                if self.today not in remarks[train]['運転日']:
+                                    continue
+                            if '運休日' in remarks[train] and len(remarks[train]['運休日']) > 0:
+                                if self.today in remarks[train]['運休日']:
+                                    continue
                 get_url = '%s?traintype=%s&train=%s' \
                             % (TRAIN_DIAGRAM_URL, train_type, train_no)
                 logger.debug('列車URL：' + get_url)
@@ -280,7 +296,8 @@ class timetable:
                     for try_i in range(self.__requests_retry_max):
                         try_ok = False
                         try:
-                            res = session.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
+                            # res = session.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
+                            res = session.get(get_url)
                             res.html.render()
                         except requests.exceptions.ProxyError as e:
                             logger.warning('except ProxyError!')
@@ -299,7 +316,8 @@ class timetable:
                     for try_i in range(self.__requests_retry_max):
                         try_ok = False
                         try:
-                            res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
+                            # res = requests.get(get_url, headers=self.__request_headers, proxies=self.__proxies)
+                            res = requests.get(get_url)
                             try_ok = True
                         except requests.exceptions.ProxyError as e:
                             logger.warning('except ProxyError!')
@@ -432,28 +450,41 @@ class timetable:
             'property': ['up', int(self.start), int(self.end)],   # up/down, 開始日, 終了日
                                                         # '列車名': timetable
         }
+        train_i = 0
         for train in trains.keys():
+            train_i += 1
+            logger.info('各列車の時刻表解析：' + train  + '  ' + str(train_i) + '/' + str(len(trains)))
             if train not in trains_timetable:
                 continue
             file_name = os.path.join(self.cache_dir, trains[train]+'_'+train+'.html')
+            if not os.path.exists(file_name):
+                continue
             soup = BeautifulSoup(trains_timetable[train], "lxml")
             contents_body = soup.find(class_=re.compile('contents-body'))
             if contents_body is None:
                 os.rename(file_name, file_name + '.error')
-                logger.error('時刻表HTMLにcontents-body無し？：' + train + '、' + file_name + '.error')
+                rem = ''
+                if train in remarks:
+                    rem = remarks[train]
+                logger.error('時刻表HTMLにcontents-body無し？：' + train + ', 事項=' + rem + '、' + file_name + '.error')
                 continue
             info_area = contents_body.find(class_=re.compile('info-area'))
             if info_area is None:
                 os.rename(file_name, file_name + '.error')
-                logger.error('時刻表HTMLにinfo_area無し？：' + train + '、' + file_name + '.error')
+                rem = ''
+                if train in remarks:
+                    rem = remarks[train]
+                logger.error('時刻表HTMLにinfo_area無し？：' + train + ', 事項=' + rem + '、' + file_name + '.error')
                 continue
             info_area = info_area.find_all('div')
             train_name = info_area[0].text.replace('<br>', '')
             if train_name == '':
                 os.rename(file_name, file_name + '.error')
-                logger.error('列車の運行日以外？：' + train + '、' + file_name + '.error')
+                rem = ''
+                if train in remarks:
+                    rem = remarks[train]
+                logger.error('列車の運行日以外？：' + train + ', 事項=' + rem + '、' + file_name + '.error')
                 continue
-            logger.info(train)
             train_start = info_area[1].contents
             if train_start[2] == STATIONS[-1] and trains[train] == 'down':
                 # 新大阪発(最終駅)の下りは除く
@@ -476,7 +507,7 @@ class timetable:
                 if 'updown' in timetable['remarks']:
                     del timetable['remarks']['updown']
             main_table = contents_body.find(class_=re.compile('main-table')).find_all('tr')
-            table = [0, '00:00', '00:00']
+            table = [0, '00:00', '00:00', 0]
             for tr_i in range(len(main_table)):
                 attrs = main_table[tr_i].attrs['class']
                 td_table = main_table[tr_i].find_all('td')
@@ -488,21 +519,24 @@ class timetable:
                         continue
                     table = [STATIONS.index(td_table[2].text),
                              self.minusTime(td_table[3].text, '00:05'),
-                             self.plusTime(td_table[3].text, '00:00')]
+                             self.plusTime(td_table[3].text, '00:00'),
+                             0]
                 elif 'end' in attrs:
                     # 終着駅
                     if td_table[2].text not in STATIONS:
                         continue
                     table = [STATIONS.index(td_table[2].text),
                              self.plusTime(td_table[3].text, '00:00'),
-                             self.plusTime(td_table[3].text, '00:05')]
+                             self.plusTime(td_table[3].text, '00:05'),
+                             0]
                 elif 'stop' in attrs or 'stopped' in attrs:
                     # 到着時刻
                     if td_table[2].text not in STATIONS:
                         continue
                     table = [STATIONS.index(td_table[2].text),
                              self.plusTime(td_table[3].text, '00:00'),
-                             self.plusTime(td_table[3].text, '00:05')]
+                             self.plusTime(td_table[3].text, '00:05'),
+                             0]
                 elif 'bottom'in attrs:
                     # 発車時刻
                     if table[1] == '00:00':
@@ -516,9 +550,9 @@ class timetable:
                     logger.error('時刻の属性が想定外：' + str(attrs))
                 if 'bottom' in attrs or 'end' in attrs:
                     # 時刻表に追加する
-                    if table != [0, '00:00', '00:00']:
+                    if table != [0, '00:00', '00:00', 0]:
                         timetable['timeLine'].append(table)
-                        table = [0, '00:00', '00:00']
+                        table = [0, '00:00', '00:00', 0]
             timetable['property'][1] = timetable['timeLine'][0][1]  # 入線時刻
             timetable['property'][2] = timetable['timeLine'][-1][2] # 退線時刻
             if trains[train] == 'down':
@@ -680,7 +714,7 @@ if __name__ == '__main__':
             # 列車一覧に特記事項の列車を追加する
             trl = ttobj.append_trains_from_remarks(trl, rem)
         # ④列車毎の時刻表を取得する
-        trt = ttobj.get_trains_timetable(trl)
+        trt = ttobj.get_trains_timetable(trl, rem)
         # ⑤各列車の時刻表を作成する
         tt = ttobj.make_timetable(trl, trt, rem)
         # ⑥時刻表をファイルに出力する
