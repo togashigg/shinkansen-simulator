@@ -182,7 +182,7 @@ phina.define('MainScene', {
 			// Copyrightと謝辞を表示
 			Label({
 				text: COPYRIGHT + '  ' + THANKS,
-				x: g_grids.span(PANEL_NUM_X/2) + 64,
+				x: g_grids.span(PANEL_NUM_X/2) + 80,
 				y: g_grids.span(PANEL_NUM_Y) + 16,
 				fontSize: 24,
 			}).addChildTo(back_panel);
