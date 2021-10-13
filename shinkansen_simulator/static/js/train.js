@@ -5,12 +5,12 @@
 // [phina.js]オブジェクトの操作 -位置、移動、衝突・クリック判定など- について：https://horohorori.com/memo_phina_js/about_object2d/
 // 吹き出し：https://github.com/pentamania/phina-talkbubble
 // 緯度・経度：https://mapfan.com/map/spots/search
-// JRアクセス検索：https://railway.jr-central.co.jp/timetable/nr_doc/search.html
-// JR到着列車案内：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti09.html
-// JR列車走行位置：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti08.html
-// JR個別列車時刻表(こだま)：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti07.html?traintype=2&train=723
-// JR個別列車時刻表(ひかり)：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti07.html?traintype=1&train=511
-// JR個別列車時刻表(のぞみ)：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti07.html?traintype=6&train=31
+// JR東海アクセス検索：https://railway.jr-central.co.jp/timetable/nr_doc/search.html
+// JR東海到着列車案内：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti09.html
+// JR東海列車走行位置：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti08.html
+// JR東海個別列車時刻表(こだま)：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti07.html?traintype=2&train=723
+// JR東海個別列車時刻表(ひかり)：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti07.html?traintype=1&train=511
+// JR東海個別列車時刻表(のぞみ)：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti07.html?traintype=6&train=31
 // 素材Library.com > 無料イラストTOP > 地図, 日本地図 > 日本地図（ベクターデータ）のイラスト素材・白フチと海：https://www.sozai-library.com/sozai/2528
 
 // phina.js をグローバル領域に展開
@@ -29,7 +29,7 @@ if(ENVIRONMENT == 'heroku') {
 var PROGRAM_TITLE = '東海道新幹線なんちゃって運行シミュレーター';
 var PROGRAM_VERSION = '0.1.2';
 var COPYRIGHT = 'Copyright (C) N.Togashi 2021';
-var THANKS = '謝辞：Heroku、Phina.js、phina-talkbubble.js、encoding.js、JR東海時刻表、素材Library.com(日本地図)を使わせて頂きました。';
+var THANKS = '謝辞：Heroku、GitHub、Docker、Phina.js、phina-talkbubble.js、ＪＲ東海(時刻表)、素材Library.com(日本地図)を使わせて頂きました。';
 var DIAGRAM_VERSION = '20210901版';
 var SCREEN_WIDTH  = 1920;	// 画面横サイズ(document.documentElement.clientWidth)
 var SCREEN_HEIGHT = 992;	// 画面縦サイズ(document.documentElement.clientHeight)
@@ -64,6 +64,7 @@ var STATIONS = [			// 駅舎情報 ID,駅名,X
 	[16, '新大阪',		2,				STATION_Y, 8, [34.7338219, 135.5014056], 0, 0],
 ];
 var STATIONS_DISTANCE = calcStationsDistance(STATIONS);
+// var STATIONS_DISTANCE = {"0-1": 17.078002122438473, "1-0": 17.078002122438473, "1-2": 17.52469759458355, "2-1": 17.52469759458355, "2-3": 50.253447218781254, "3-2": 50.253447218781254, "3-4": 18.3631940858771, "4-3": 18.3631940858771, "4-5": 15.398424481279315, "5-4": 15.398424481279315, "5-6": 22.56236879872776, "6-5": 22.56236879872776, "6-7": 31.343675567064256, "7-6": 31.343675567064256, "7-8": 40.91885277881738, "8-7": 40.91885277881738, "8-9": 26.5670383358072, "9-8": 26.5670383358072, "9-10": 32.90994118628989, "10-9": 32.90994118628989, "10-11": 37.225303218650915, "11-10": 37.225303218650915, "11-12": 27.70545223389335, "12-11": 27.70545223389335, "12-13": 24.02269079013669, "13-12": 24.02269079013669, "13-14": 35.92291310222524, "14-13": 35.92291310222524, "14-15": 60.61147446445845, "15-14": 60.61147446445845, "15-16": 36.48323051450204, "16-15": 36.48323051450204, "total": 494.8907064935329};
 STATIONS = calcStationsGridX(STATIONS, STATIONS_DISTANCE);
 var DIAGRAM_DOWN = {		// 下り時刻表
 	'property': ['down', 20210701, 20210731],

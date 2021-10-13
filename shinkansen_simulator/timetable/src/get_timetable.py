@@ -15,10 +15,10 @@
 # Pythonでかんたんスクレイピング （JavaScript・Proxy・Cookie対応版）：
 #               https://qiita.com/_akisato/items/2daafdbc3de544cf6c92
 # requests-html 0.10.0：https://pypi.org/project/requests-html/
-# How to fix pyppeteer pyppeteer.errors.BrowserError: Browser closed unexpectedly:
+#   How to fix pyppeteer pyppeteer.errors.BrowserError: Browser closed unexpectedly:
 #               https://techoverflow.net/2020/09/29/how-to-fix-pyppeteer-pyppeteer-errors-browsererror-browser-closed-unexpectedly/
-# sudo pip3 install requests-html
-# sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
+#   sudo pip3 install requests-html
+#   sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
 # Ubuntu 18.04でのみ動作（Python3.6のみ動作）
 # Free Proxy：http://free-proxy.cz/ja/proxylist/country/JP/https/ping/all
 #             sudo pip3 install urllib3==1.25.11
@@ -38,7 +38,7 @@ import urllib.parse
 import requests
 from requests_html import HTMLSession
 from bs4 import BeautifulSoup
-from logging import getLogger, FileHandler, StreamHandler, Formatter, INFO, DEBUG
+from logging import getLogger, handlers, FileHandler, StreamHandler, Formatter, INFO, DEBUG
 
 # 定数
 STATION_DIAGRAM_URL = 'https://railway.jr-central.co.jp/cgi-bin/timetable/tokainr.cgi'
@@ -53,7 +53,7 @@ STATIONS_ID = {i:STATIONS[i] for i in range(len(STATIONS))}
 WEBAPI_SLEEP_TIME = 30
 
 # クラス定義
-class timetable:
+class Timetable:
 
     def __init__(self, start, end, cache_dir='./cache'):
         """
@@ -64,6 +64,16 @@ class timetable:
         :return: なし
         """
         logger = getLogger(__name__)
+        # パラメタチェック
+        if start is None or type(start) is not str or len(start) != 8 or str(int(start)) != start:
+            raise Exception('start parameter is invalid, ' + str(start))
+        if end is None or type(end) is not str or len(end) != 8 or str(int(end)) != end:
+            raise Exception('end parameter is invalid, ' + str(end))
+        if start > end:
+            raise Exception('start parameter is big from end paramter, ' + str(start) + ' ' + str(end))
+        if cache_dir is None or type(cache_dir) is not str or len(cache_dir) == 0:
+            raise Exception('cache_dir parameter is invalid, ' + str(cache_dir))
+        # 実行
         self.start = start
         self.end = end
         self.cache_dir = cache_dir
@@ -77,12 +87,12 @@ class timetable:
             dt = dt + relativedelta(months=1)
         self.__DIAGRAM_ROUTE_ENCODE = urllib.parse.quote(DIAGRAM_ROUTE, encoding='euc_jp').lower()
         self.__request_headers = {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36',
-                'Access-Control-Allow-Origin': '*'
+                # 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36',
+                # 'Access-Control-Allow-Origin': '*'
         }
         self.__proxies = {
-                'http':  'https://43.128.18.61:8080',
-                'https': 'https://43.128.18.61:8080'
+                # 'http':  'https://43.128.18.61:8080',
+                # 'https': 'https://43.128.18.61:8080'
         }
         self.__requests_retry_max = 5
         self.__requests_retry_seconds = WEBAPI_SLEEP_TIME
@@ -98,6 +108,7 @@ class timetable:
     def initialize(self):
         """
         準備を行う。
+        :return: int型、0=正常終了
         """
         logger = getLogger(__name__)
         logger.info('initialize() start.')
@@ -105,7 +116,9 @@ class timetable:
         # キャッシュディレクトリの存在確認
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
-            logger.info('maked cache directory: ' + self.cache_dir)
+            msg = 'maked cache directory: ' + self.cache_dir
+            logger.info(msg)
+            print(msg, file=sys.stderr)
         # 今日が1日ならキャッシュを削除する
         if self.today[-2:] == '01':
             cleared_file = os.path.join(self.cache_dir, 'cleared_' + self.today)
@@ -114,7 +127,9 @@ class timetable:
                     os.remove(os.path.join(self.cache_dir, file_name))
                 with open(cleared_file, 'w') as fh:
                     fh.write('')
-            logger.info('cleared in cache directory: ' + self.cache_dir)
+            msg = 'cleared in cache directory: ' + self.cache_dir
+            logger.info(msg)
+            print(msg, file=sys.stderr)
         logger.info('initialize() ended.')
         # 復帰
         return rc
@@ -130,7 +145,9 @@ class timetable:
         station_i = 0
         for station in STATIONS:
             station_i += 1
-            logger.info('各駅の時刻表取得：' + station  + '  ' + str(station_i) + '/' + str(len(STATIONS)))
+            msg = '各駅の時刻表取得：' + station  + '  ' + str(station_i) + '/' + str(len(STATIONS))
+            logger.info(msg)
+            print(msg, file=sys.stderr)
             station_encode = urllib.parse.quote(station, encoding='euc_jp').lower()
             # 各駅の下りの出発時刻
             file_name = os.path.join(self.cache_dir, station + '_' + self.today + '_down.html')
@@ -226,7 +243,9 @@ class timetable:
             logger.debug('read cache: ' + file_name)
 
         for key in stations_timetable.keys():
-            logger.info(key)
+            msg = '駅の時刻表から列車名取得：' + key
+            logger.info(msg)
+            print(msg, file=sys.stderr)
             st_way = key.split('_')
             stations_timetable[key] = stations_timetable[key].replace('</TD><TR>', '</TD></TR><TR>')
             stations_timetable[key] = stations_timetable[key].replace('</TD></TABLE>', '</TD></TR></TABLE>')
@@ -267,9 +286,11 @@ class timetable:
         train_i = 0
         for train in trains.keys():
             train_i += 1
-            logger.info('各列車の時刻表取得：' + train  + '  ' + str(train_i) + '/' + str(len(trains)))
+            msg = '各列車の時刻表取得：' + train  + '  ' + str(train_i) + '/' + str(len(trains))
+            logger.info(msg)
+            print(msg, file=sys.stderr)
             if train[:3] not in TRAIN_TYPES:
-                logger.error('対象外車種？：' + train)
+                logger.warning('対象外車種？：' + train)
                 continue
             trains_timetable[train] = ''
             train_type = TRAIN_TYPES[train[:3]]
@@ -350,6 +371,7 @@ class timetable:
         """
         logger = getLogger(__name__)
         logger.info('get_remarks_file() start.')
+        print('時刻表の特記事項を読み込み開始', file=sys.stderr)
         remarks = {}
         remarks_csv = []
         with open(remarks_file, 'r') as rfh:
@@ -408,6 +430,7 @@ class timetable:
                     remarks[train]['事項'] += '\n'
                 remarks[train]['事項'] += rec[2] + rec[3]
 
+        print('時刻表の特記事項を読み込み終了', file=sys.stderr)
         logger.info('remarks keys: ' + str(sorted(list(remarks.keys()))))
         logger.info('get_remarks_file() ended.')
         # 復帰
@@ -421,6 +444,7 @@ class timetable:
         """
         logger = getLogger(__name__)
         logger.info('append_trains_from_remarks() start.')
+        print('時刻表の特記事項から列車名を追加', file=sys.stderr)
         trains_append = []
         for train in remarks.keys():
             if train not in trains:
@@ -453,7 +477,9 @@ class timetable:
         train_i = 0
         for train in trains.keys():
             train_i += 1
-            logger.info('各列車の時刻表解析：' + train  + '  ' + str(train_i) + '/' + str(len(trains)))
+            msg = '各列車の時刻表解析：' + train  + '  ' + str(train_i) + '/' + str(len(trains))
+            logger.info(msg)
+            print(msg, file=sys.stderr)
             if train not in trains_timetable:
                 continue
             file_name = os.path.join(self.cache_dir, trains[train]+'_'+train+'.html')
@@ -588,6 +614,8 @@ class timetable:
             os.makedirs(output_dir)
             logger.info('maked output_dir: ' + output_dir)
         tt_json_str = json.dumps(timetables, ensure_ascii=False, sort_keys=True)
+        # 列車毎に改行する
+        tt_json_str = re.sub(r'("(こだま|ひかり|のぞみ)[0-9]+号"\:)', r'\n\1', tt_json_str)
         wlen = 0
         with open(file_name, 'w') as fh:
             wlen = fh.write(tt_json_str)
@@ -603,6 +631,7 @@ class timetable:
                     logger.info('deleted oldest file: ' + remove_file)
 
         logger.info('write_timetable() ended, rc=' + str(rc) + ', output=' + file_name)
+        print('時刻表を書き込みました。' + file_name, file=sys.stderr)
         return file_name
 
     def plusTime(self, base, diff):
@@ -646,28 +675,41 @@ class timetable:
         return ('0'+str(rc.hour))[-2:] + ':' + ('0'+str(rc.minute))[-2:]
 
 # 関数定義
-def setup_logger_stderr(name, level):
+def setup_logger(name, level, log_file='get_timetable.log', log_dir='log'):
     """
     ログ初期化
     :param name: str型、関数、__main__
     :param level: int型、INFO、DEBUG、...
+    :param log_file: str型/stderr、ログファイル名またはstderr
+    :param log_dir: str型、ログディレクトリ名、log_fileがログファイル名の場合に有効なパラメタ
     :return: logger
     """
     logger = getLogger(name)
     logger.parent.setLevel(level)
-    log_stream_handler = StreamHandler()
-    log_stream_handler.setLevel(level)
     log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     log_handler_format = Formatter(log_format)
-    log_stream_handler.setFormatter(log_handler_format)
-    logger.addHandler(log_stream_handler)
+    if type(log_file) is str:
+        # ファイル出力ハンドラ
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        # log_file_handler = FileHandler(os.path.join(log_dir, log_file))
+        log_file_handler= handlers.RotatingFileHandler(os.path.join(log_dir, log_file), maxBytes=1024000, backupCount=5)
+        log_file_handler.setLevel(level)
+        log_file_handler.setFormatter(log_handler_format)
+        logger.addHandler(log_file_handler)
+    else:
+        # 標準エラー出力ハンドラ
+        log_stream_handler = StreamHandler()
+        log_stream_handler.setLevel(level)
+        log_stream_handler.setFormatter(log_handler_format)
+        logger.addHandler(log_stream_handler)
     return logger
 
 # コマンド呼び出し
 if __name__ == '__main__':
     # 初期化
     rc = 0
-    logger = setup_logger_stderr(__name__, INFO)
+    logger = setup_logger(__name__, INFO)
 
     try:
         # コマンドのパラメタを取得する
@@ -691,16 +733,21 @@ if __name__ == '__main__':
             logger.error('終了日の指定に誤りがあります。' + args.end_date)
             sys.exit(1)
         if args.remarks_file is None:
-            args.remarks_file = '時刻表_' + args.start_date[2:] + '_' + args.end_date[4:] + '_記事.csv'
+            args.remarks_file = 'remarks/時刻表_' + args.start_date[2:] + '_' + args.end_date[4:] + '_記事.csv'
         if not os.path.exists(args.remarks_file):
             logger.error('時刻表の特記事項ファイルが存在しません。' + args.remarks_file)
             rc = 1
         if rc != 0:
             sys.exit(rc)
-        logger.info('開始日=' + args.start_date + '、終了日=' + args.end_date + '、記事ファイル=' + args.remarks_file)
+        msg = 'get_timetable.py start.'
+        logger.info(msg)
+        print(msg, file=sys.stderr)
+        msg = '時刻表開始日=' + args.start_date + '、時刻表終了日=' + args.end_date + '、記事ファイル=' + args.remarks_file
+        logger.info(msg)
+        print(msg, file=sys.stderr)
 
         # 実行
-        ttobj = timetable(args.start_date, args.end_date)
+        ttobj = Timetable(args.start_date, args.end_date)
         # 準備
         ttobj.initialize()
         # ①各駅の時刻表を取得する
@@ -727,6 +774,11 @@ if __name__ == '__main__':
     except Exception as e:
         logger.exception(f'{e}')
         rc = 99
+
+    # 終了
+    msg = 'get_timetable.py ended, rc=' + str(rc)
+    logger.info(msg)
+    print(msg, file=sys.stderr)
 
     # 復帰
     sys.exit(rc)
