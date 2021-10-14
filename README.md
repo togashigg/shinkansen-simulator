@@ -8,20 +8,29 @@
 また、東京駅と新大阪駅間の約500Kmを、のぞみ号は約2時間30分、ひかり号は約2時間54分、こだま号は約3時間54分で結んでおり、
 上り下りの線路上にはそれぞれ約26本以上（のぞみ号が13本、ひかり号が6本、こだま号が7本）の列車が走行しているようです。
 このような状況を見てみたいと考えて作成したのがこの運行シミュレーターです。
+
+　実際の画面がこちらです。<IMG SRC="shinkansen_simulator/static/images/sample_screen.png" ALT="サンプル画面" TITLE="サンプル画面">
+
 　実際に見てみると想像以上の混雑ぶりでびっくりしました。特にのぞみ号の追い抜きぶりは凄くて、
 こだま号やひかり号が可哀想になります。出張ではこだま号を使っていたため身に染みてわかります。
+
 　まだまだ不完全な部分が多いですが、ぼちぼち改善していきたいと考えています。
+
   - 各列車が駅間を走行する際、駅内徐行、加速、区間毎の最高速度、カーブなどが全く考慮されていません（均等走行）。
   - 追い越しの考え方が全くできていません（次の通過駅に近づいた時に停車している車両があれば追い抜く）。
   - 各駅の構成や各列車が発着する番線が考慮されていません。
   - 線路を実際の地図に合わせた曲線にしたい。
   - 通過駅のアナウンスも表示したい。
   - 時刻表はＪＲ東海HPの時刻表から取得させて頂いていますが良い方法があれば改善したい。
+
 　公開に際しては以下のサービスを使用させて頂きました。感謝致します。
+
   - [Heroku](https://heroku.com/)
   - [GitHub](https://github.com/)
   - [Docker Hub](https://hub.docker.com/)
+
 　作成に際しては以下のソフトウェアおよびデータを使用させて頂きました。感謝致します。
+
   - [Phina.js](https://phinajs.com/)
   - [phina-talkbubble.js](https://github.com/pentamania/phina-talkbubble)
   - [ＪＲ東海](https://jr-central.co.jp/)の時刻表
@@ -34,106 +43,153 @@
 
 ## Herokuで運用中
 
-　以下のリンクから実行可能です。※作業中で停止している場合はごめんなさい。 m(_._)m
+　以下のリンクから実際の動作を確認できます。※作業中で停止している場合はごめんなさい。 m(\_.\_)m
 
-  [東海道新幹線なんちゃって運行シミュレーター](https://shinkansen-simulator.herokuapp.com/)
-
-### Herokuでの構築手順（作成者のみ）
-
-#### Herokuにユーザ登録する
-
-  1. Herokuのユーザでない場合は、以下のURLを開いて新規登録を行う。
-    https://heroku.com/
-
-#### Herokuにログインする
-
-  1. Herokuの以下のURLを開いてログインする。
-    https://heroku.com/
-
-#### 新規のアプリを作成する
-
-  1. Herokuにログインしたアプリ一覧の画面で\[New\]-\[Create new app\]を選択する。
-     \[Create New App\]画面が表示される。
-  2. 各項目に値を入力する。
-     \[App name\]：
-       公開するアプリの名前を英字で始まる英数字で入力する。Herokuアプリ内で一意な名前でなければならない。
-     \[Choose a region\]：
-       デフォルトで表示される値(United States)のままとする。
-     \[Add to pipeline...\]：
-       デフォルトのまな何もしない。
-  3. \[Create app\]ボタンをクリックする。
-     アプリ画面が表示される。
-
-#### GitHubとの連携を設定する
-
-  1. \[Deployment method\]項目の\[GitHub\]をクリックする。
-     \[Deploy using Heroku Git\]項目が\[Deploy using Heroku Git\]項目に変化する。
-  2. \[Deploy using Heroku Git\]項目の\[Connect GitHub\]
-     \[Sign in to GitHub\]画面が表示される。
-  3. \[Sign in to GitHub\]画面にユーザIDとパスワードを入力して\[Sign in\]ボタンをクリックする。
-     \[Authorize application\]画面が表示される。
-  4. \[Authorize heoku\]ボタンをクリックする。
-     \[Connect to GitHub\]項目に\[Search for a repository to connect to\]に表示される
-  5. \[Search for a repository to connect to\]の\[Search\]ボタンをクリックする。
-     GitHubのリポジトリ一覧が表示される。
-  6. 該当リポジトリの右横の\[Connect\]ボタンをクリックする。
-     今回の場合は、\[togashigg/shinkansen-simulator\]の横の\[Connect\]ボタンをクリックする。
-
-#### アプリをデプロイする
-
-  1. herokuの\[Deploy\]タブをクリックする。
-  2. \[Manual deploy\]項目の\[Deploy Branch\]ボタンをクリックする。
-     デプロイログが下方に表示される。
+  - <A HREF="https://shinkansen-simulator.herokuapp.com/" TARGET="_blank" REL="noopener noreferrer">東海道新幹線なんちゃって運行シミュレーター</A>
 
 ## Dockerコンテナで運用する場合
 
-### Dockerコンテナで運用する手順（ご参考）
+### 構築手順
 
   1. GitHubからプロジェクトを取得する。
+     ```
      $ git clone --depth 1 https://github.com/togashigg/shinkansen-simulator.git
+     ```
   2. プロジェクトのディレクトリに移動する。
+     ```
      $ cd shinkansen-simulator
+     ```
   3. Dockerイメージをビルドする。
+     ```
      $ docker build -t shinkansen-simulator:latest .
+     ```
   4. 永続化領域用ディレクトリを作成する。
+     ```
      $ mkdir ~/timetable
      $ mkdir ~/timetable/cache
      $ mkdir ~/timetable/log
      $ mkdir ~/timetable/output
      $ mkdir ~/timetable/remarks
+     ```
   5. Dockerコンテナを起動する。
-     $ docker run -d --name shinkansen-simulator -p 80:8080 \\
-              -v ~/timetable/cache:/app/shinkansen_simulator/timetable/cache \\
-              -v ~/timetable/log_docker:/app/shinkansen_simulator/timetable/log \\
-              -v ~/timetable/output:/app/shinkansen_simulator/timetable/output \\
-              -v ~/timetable/remarks:/app/shinkansen_simulator/timetable/remarks \\
+     ```
+     $ docker run -d --name shinkansen-simulator -p 80:8080 \
+              -v ~/timetable/cache:/app/shinkansen_simulator/timetable/cache \
+              -v ~/timetable/log:/app/shinkansen_simulator/timetable/log \
+              -v ~/timetable/output:/app/shinkansen_simulator/timetable/output \
+              -v ~/timetable/remarks:/app/shinkansen_simulator/timetable/remarks \
               shinkansen-simulator
-  8. DockerコンテナのURLを開く。
-     http://192.168.xxx.yyy/
+     ```
+  8. ブラウザでDockerコンテナのURLを開く。
+     ```
+     http://＜IPアドレス＞/
+     
+      ※＜IPアドレス＞には環境を構築したサーバのIPアドレスを指定してください。
+     ```
 
 ### 最新の時刻表に更新する方法
 
-  時刻表データ利用についてはＪＲ東海の許可を得ておりません。利用する際は自己責任で利用して下さい。
+　時刻表データ利用についてはＪＲ東海の許可を得ておりません。利用する際は自己責任で利用して下さい。
+
+　なお、運転日指定列車の時刻表は運転日にのみ取得できます。全列車の時刻表を完成させるには毎日実行しなければなりません。
 
   1. 時刻表の記事ファイルを作成する。
+
      本プロジェクトの"shinkansen_simulator/timetable/remarks/"内のファイルを参考にして、
      最新の時刻表から記事ファイルを作成して、永続化用ディレクトリの"remarks"ディレクトリに
      格納する。
+
      ファイル名は以下の通りとする。
-       '''
+     ```
        時刻表_YYMMDD_MMDD_記事.csv
-       '''
-       ※YYMMDD：時刻表の開始日を西暦年の下2桁と月日を指定する。例：211001
-       ※MMDD　：時刻表の終了日を月日で指定する。例：1031
-  2. 以下のコマンドを実行してJR東海の時刻表データを取得する。
-     $ docker exec shinkansen-simulator /bin/bash -c \\
+       
+         ※YYMMDD：時刻表の開始日を西暦年の下2桁と月日を指定する。例：211001
+         ※MMDD　：時刻表の終了日を月日で指定する。例：1031
+     ```
+
+  2. 以下のコマンドを実行してＪＲ東海HPより時刻表データを取得する。
+     ```
+     $ docker exec shinkansen-simulator /bin/bash -c \
               'cd /app/shinkansen_simulator/timetable/; ./get.sh ＜時刻表開始日＞ ＜時刻表終了日＞'
+     
        ※＜時刻表開始日＞：時刻表の開始日をYYYYMMDDの８桁の数字で指定する。例：20211001
        ※＜時刻表終了日＞：時刻表の終了日をYYYYMMDDの８桁の数字で指定する。例：20211031
-       ※初回および各月の1日は約4時間、掛かります。
-       ※運転日指定列車の時刻表は運転日にみに取得できます。全列車の時刻表を完成させるには毎日実行しなければなりません。
+       ※実行時間は、初回および各月の1日は約4時間、その他は約20分～40分程度です。
+     ```
 
-## 使用サービスおよびソフトウェアのライセンスおよびポリシー
+### Herokuでの構築手順（作成者メモ）
+
+#### Herokuにユーザ登録する
+
+  1. Herokuのユーザでない場合は、以下のURLを開いて新規登録を行う。
+
+     https://heroku.com/
+
+#### Herokuにログインする
+
+  1. Herokuの以下のURLを開いてログインする。
+
+     https://heroku.com/
+
+#### 新規のアプリを作成する
+
+  1. Herokuにログインしたアプリ一覧の画面で\[New\]-\[Create new app\]を選択する。
+
+     \[Create New App\]画面が表示される。
+
+  2. 各項目に値を入力する。
+
+     \[App name\]：
+
+       公開するアプリの名前を英字で始まる英数字で入力する。Herokuアプリ内で一意な名前でなければならない。
+
+     \[Choose a region\]：
+
+       デフォルトで表示される値(United States)のままとする。
+
+     \[Add to pipeline...\]：
+
+       デフォルトのまな何もしない。
+
+  3. \[Create app\]ボタンをクリックする。
+
+     アプリ画面が表示される。
+
+#### GitHubとの連携を設定する
+
+  1. \[Deployment method\]項目の\[GitHub\]をクリックする。
+
+     \[Deploy using Heroku Git\]項目が\[Deploy using Heroku Git\]項目に変化する。
+
+  2. \[Deploy using Heroku Git\]項目の\[Connect GitHub\]
+
+     \[Sign in to GitHub\]画面が表示される。
+
+  3. \[Sign in to GitHub\]画面にユーザIDとパスワードを入力して\[Sign in\]ボタンをクリックする。
+
+     \[Authorize application\]画面が表示される。
+
+  4. \[Authorize heoku\]ボタンをクリックする。
+
+     \[Connect to GitHub\]項目に\[Search for a repository to connect to\]に表示される
+
+  5. \[Search for a repository to connect to\]の\[Search\]ボタンをクリックする。
+
+     GitHubのリポジトリ一覧が表示される。
+
+  6. 該当リポジトリの右横の\[Connect\]ボタンをクリックする。
+
+     今回の場合は、\[togashigg/shinkansen-simulator\]の横の\[Connect\]ボタンをクリックする。
+
+#### アプリをデプロイする
+
+  1. herokuの\[Deploy\]タブをクリックする。
+
+  2. \[Manual deploy\]項目の\[Deploy Branch\]ボタンをクリックする。
+
+     デプロイログが下方に表示される。
+
+## 使用サービスおよび使用ソフトウェアのライセンスおよびポリシー
 
   - [Heroku](https://heroku.com/)
     ```
@@ -426,6 +482,5 @@
     Crummy is © 1996-2021 Leonard Richardson. Unless otherwise noted, all text licensed under a Creative Commons License.
     ```
 
-## 著作権
-
-  Copyright (C) N.Togashi 2021
+----
+Copyright (C) N.Togashi 2021
