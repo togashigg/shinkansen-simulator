@@ -916,7 +916,7 @@ function show_setup_panel(scene) {
 	var button_balloon_show = Button({
 		x: 6,
 		y: 28,
-		text: '□ 走行時のバルーン表示',	// 表示文字
+		text: '☒ 走行時のバルーン表示',	// 表示文字
 		width: 32*11,	// 横サイズ
 		height: 32,	// 縦サイズ
 		fontSize: 28,		// 文字サイズ
