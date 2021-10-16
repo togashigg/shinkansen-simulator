@@ -99,7 +99,7 @@ var TRAIN_STATUS = [	// balloon_show, message, station, next
 	[1, 0, true, '{{train}}\n{{to}}行きです', 0, 1],
 	[2, 0, true, '{{train}}\n間もなく発車します', 0, 1],
 	[3, 0, true, '{{train}}\n次は{{next}}に止まります', 0, 1],
-	[4, 0, false, '{{train}}', 0, 1],
+	[4, 0, true, '{{train}}', 0, 1],
 	[5, 0, true, '{{train}}\n間もなく{{next}}です', 0, 1],
 	[6, 0, true, '{{train}}\n{{station}}です', 0, 1],
 	[7, 0, true, '{{train}}\n{{station}}です', 0, 1],
