@@ -19,6 +19,8 @@ def html(request, filePath):
 
 def json(request, filePath):
     # print("\nstart views.json(), filePath=" + filePath, file=sys.stderr)
+    if '..' in filePath or '/' in filePath or len(filePath) > 255:
+        return HttpResponse(status=404)
     f = open(os.path.join('cache', filePath), 'r')
     response = HttpResponse(f)
     response['content-type'] = 'application/json; charset=utf-8'
