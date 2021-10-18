@@ -112,11 +112,12 @@
 
   2. 以下のコマンドを実行してＪＲ東海HPより時刻表データを取得する。
      ```
-     $ docker exec shinkansen-simulator /bin/bash -c \
-              'cd /app/shinkansen_simulator/timetable/; ./get.sh ＜時刻表開始日＞ ＜時刻表終了日＞'
+     $ docker exec shinkansen-simulator \
+              /app/shinkansen_simulator/timetable/get.sh [＜時刻表開始日＞ ＜時刻表終了日＞]
      
        ※＜時刻表開始日＞：時刻表の開始日をYYYYMMDDの８桁の数字で指定する。例：20211001
        ※＜時刻表終了日＞：時刻表の終了日をYYYYMMDDの８桁の数字で指定する。例：20211031
+       ※時刻表開始日および時刻表終了日を省略した場合は当月の1日と月末日が指定されたものとする。
        ※実行時間は、初回および各月の1日は約4時間、その他は約20分～40分程度です。
      ```
 
