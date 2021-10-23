@@ -491,7 +491,7 @@ class Timetable:
                 os.rename(file_name, file_name + '.error')
                 rem = ''
                 if train in remarks:
-                    rem = remarks[train]
+                    rem = remarks[train]['事項']
                 logger.error('時刻表HTMLにcontents-body無し？：' + train + ', 事項=' + rem + '、' + file_name + '.error')
                 continue
             info_area = contents_body.find(class_=re.compile('info-area'))
@@ -499,7 +499,7 @@ class Timetable:
                 os.rename(file_name, file_name + '.error')
                 rem = ''
                 if train in remarks:
-                    rem = remarks[train]
+                    rem = remarks[train]['事項']
                 logger.error('時刻表HTMLにinfo_area無し？：' + train + ', 事項=' + rem + '、' + file_name + '.error')
                 continue
             info_area = info_area.find_all('div')
@@ -508,7 +508,7 @@ class Timetable:
                 os.rename(file_name, file_name + '.error')
                 rem = ''
                 if train in remarks:
-                    rem = remarks[train]
+                    rem = remarks[train]['事項']
                 logger.error('列車の運行日以外？：' + train + ', 事項=' + rem + '、' + file_name + '.error')
                 continue
             train_start = info_area[1].contents
