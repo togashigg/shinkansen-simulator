@@ -391,7 +391,7 @@ class Timetable:
                 rems = rem.split('・但し、')
                 if len(rems) > 1:
                     rem = rems[1]
-                if rem[-3:] == '日運転' or rem[-4:] == '日は運転':
+                if rem[-2:] == '運転':
                     match = re.search(r'^([0-9]+)月([^日]+)日は?運転$', rem)
                     rem_month = ('0'+match.group(1))[-2:]
                     rem_array = match.group(2).split('・')
@@ -404,27 +404,41 @@ class Timetable:
                             dates.extend([str(d) for d in range(int(dt_array[0]), int(dt_array[1])+1)])
                     remarks[train]['運転日'] = [self.start[:4]+rem_month+('0'+d)[-2:] for d in dates]
                 rem = rems[0]
-                dates = []
-                if rem == '土曜運休' or rem == '土曜・休日運休':    # 土曜日
-                    for yyyymm in self.months:
-                        dt = datetime.strptime(yyyymm+'01', '%Y%m%d')
-                        (weekday1, days) = calendar.monthrange(dt.year, dt.month)
-                        dates.extend([yyyymm+('0'+str(d))[-2:] for d in range(1, days+1) if ((weekday1+d-1)%7) == 5])
-                if rem == '休日運休' or rem == '土曜・休日運休':    # 日曜日
-                    for yyyymm in self.months:
-                        dt = datetime.strptime(yyyymm+'01', '%Y%m%d')
-                        (weekday1, days) = calendar.monthrange(dt.year, dt.month)
-                        dates.extend([yyyymm+('0'+str(d))[-2:] for d in range(1, days+1) if ((weekday1+d-1)%7) == 6])
-                if rem == '休日運休' or rem == '土曜・休日運休':    # 祝日
-                    for yyyymm in self.months:
-                        dt = datetime.strptime(yyyymm+'01', '%Y%m%d')
-                        (weekday1, days) = calendar.monthrange(dt.year, dt.month)
-                        for d in range(1, days+1):
-                            dt = datetime.strptime(yyyymm+('0'+str(d))[-2:], '%Y%m%d')
-                            if jpholiday.is_holiday(dt):
-                                dates.append(yyyymm+('0'+str(d))[-2:])
-                if len(dates) > 0:
-                    remarks[train]['運休日'] = dates
+                if rem[-2:] == '運休':
+                    dates = []
+                    rem_array = rem.split('と')
+                    for rem1 in rem_array:
+                        match = re.search(r'^([0-9]+)月([^日]+)日は?運休$', rem1)
+                        if match is not None:
+                            rem_month = ('0'+match.group(1))[-2:]
+                            rem_array = match.group(2).split('・')
+                            for dt in rem_array:
+                                dt_array = dt.split('～')
+                                if len(dt_array) == 1:
+                                    dates.append(self.start[:4]+rem_month+('0'+str(dt))[-2:])
+                                else:
+                                    dates.extend([self.start[:4]+rem_month+('0'+str(d))[-2:] for d in range(int(dt_array[0]), int(dt_array[1])+1)])
+                        else:
+                            if rem1 == '土曜' or rem1 == '土曜運休' or rem1 == '土曜・休日運休':    # 土曜日
+                                for yyyymm in self.months:
+                                    dt = datetime.strptime(yyyymm+'01', '%Y%m%d')
+                                    (weekday1, days) = calendar.monthrange(dt.year, dt.month)
+                                    dates.extend([yyyymm+('0'+str(d))[-2:] for d in range(1, days+1) if ((weekday1+d-1)%7) == 5])
+                            if rem1 == '休日' or rem1 == '休日運休' or rem1 == '土曜・休日運休':    # 日曜日
+                                for yyyymm in self.months:
+                                    dt = datetime.strptime(yyyymm+'01', '%Y%m%d')
+                                    (weekday1, days) = calendar.monthrange(dt.year, dt.month)
+                                    dates.extend([yyyymm+('0'+str(d))[-2:] for d in range(1, days+1) if ((weekday1+d-1)%7) == 6])
+                            if rem1 == '休日' or rem1 == '休日運休' or rem1 == '土曜・休日運休':    # 祝日
+                                for yyyymm in self.months:
+                                    dt = datetime.strptime(yyyymm+'01', '%Y%m%d')
+                                    (weekday1, days) = calendar.monthrange(dt.year, dt.month)
+                                    for d in range(1, days+1):
+                                        dt = datetime.strptime(yyyymm+('0'+str(d))[-2:], '%Y%m%d')
+                                        if jpholiday.is_holiday(dt):
+                                            dates.append(yyyymm+('0'+str(d))[-2:])
+                    if len(dates) > 0:
+                        remarks[train]['運休日'] = dates
             elif rec[2] == '☆':
                 if remarks[train]['事項'] != '':
                     remarks[train]['事項'] += '\n'
@@ -432,6 +446,7 @@ class Timetable:
 
         print('時刻表の特記事項を読み込み終了', file=sys.stderr)
         logger.info('remarks keys: ' + str(sorted(list(remarks.keys()))))
+        logger.debug('remarks: ' + str(remarks))
         logger.info('get_remarks_file() ended.')
         # 復帰
         return remarks
