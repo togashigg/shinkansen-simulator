@@ -23,7 +23,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECRET_KEY = 'vf4u8j1wj*egmj_w6b%^0bnl8_xm+3xa=hz)tkvxczuoet^w$r'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
@@ -128,8 +128,6 @@ try:
 except ImportError:
     pass
 
-if not DEBUG:
+if 'SECRET_KEY' not in globals():
     SECRET_KEY = os.environ['SECRET_KEY']
-    # import django_heroku
-    # django_heroku.settings(locals())
 
