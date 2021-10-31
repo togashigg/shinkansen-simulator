@@ -129,5 +129,9 @@ except ImportError:
     pass
 
 if 'SECRET_KEY' not in globals():
-    SECRET_KEY = os.environ['SECRET_KEY']
+    if 'SECRET_KEY' in os.environ:
+        SECRET_KEY = os.environ['SECRET_KEY']
+    else:
+        from django.core.management.utils import get_random_secret_key
+        SECRET_KEY = get_random_secret_key()
 
