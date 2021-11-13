@@ -165,12 +165,9 @@ class Timetable:
                                self.__DIAGRAM_ROUTE_ENCODE,
                                '1')
                 logger.debug('下りURL：' + get_url)
-                res = self.http_get_content(get_url)
-                if res.status_code != requests.codes.ok:
-                    logger.error('requests error: ' + str(res))
-                else:
-                    logger.debug('response.encoding: ' + str(res.encoding))
-                    stations_timetable[station+'_down'] = res.content.decode('euc_jp')
+                content = self.http_get_content(get_url)
+                if content is not None:
+                    stations_timetable[station+'_down'] = content.decode('euc_jp')
                     with open(file_name, 'w') as t_h:
                         t_h.write(stations_timetable[station+'_down'])
                         logger.debug('write cache: ' + file_name)
@@ -190,12 +187,9 @@ class Timetable:
                                self.__DIAGRAM_ROUTE_ENCODE,
                                '2')
                 logger.debug('上りURL：' + get_url)
-                res = self.http_get_content(get_url)
-                if res.status_code != requests.codes.ok:
-                    logger.error('requests error: ' + str(res))
-                else:
-                    logger.debug('response.encoding: ' + str(res.encoding))
-                    stations_timetable[station+'_up'] = res.content.decode('euc_jp')
+                content = self.http_get_content(get_url)
+                if content is not None:
+                    stations_timetable[station+'_up'] = content.decode('euc_jp')
                     with open(file_name, 'w') as t_h:
                         t_h.write(stations_timetable[station+'_up'])
                         logger.debug('write cache: ' + file_name)
@@ -324,7 +318,7 @@ class Timetable:
                                 % (TRAIN_DIAGRAM_URL, train_type, train_no)
                     logger.debug('列車URL：' + get_url)
                     content = self.http_get_content(get_url, script=True)
-                trains_timetable[train] = content
+                trains_timetable[train] = content.decode('utf-8')
 
                 with open(file_name, 'w') as t_h:
                     t_h.write(trains_timetable[train])
@@ -732,7 +726,7 @@ class Timetable:
         print('INFO:時刻表を書き込みました。' + file_name, file=sys.stderr)
         return file_name
 
-    def http_get_content(self, url, script=False, headers={}, proxies={}):
+    def http_get_content(self, url, script=False):
         """
         HTTP GETで指定URLの資源を取得する。
         :param url: str型、取得する資源のURL
@@ -751,7 +745,7 @@ class Timetable:
             for try_i in range(self.__requests_retry_max):
                 try_ok = False
                 try:
-                    res = session.get(url, headers=headers, proxies=proxies)
+                    res = session.get(url, headers=self.__request_headers, proxies=self.__proxies)
                     res.html.render()
                 except requests.exceptions.ProxyError as e:
                     logger.warning('except ProxyError!')
@@ -770,7 +764,7 @@ class Timetable:
             for try_i in range(self.__requests_retry_max):
                 try_ok = False
                 try:
-                    res = requests.get(url, headers=headers, proxies=proxies)
+                    res = requests.get(url, headers=self.__request_headers, proxies=self.__proxies)
                     try_ok = True
                 except requests.exceptions.ProxyError as e:
                     logger.warning('except ProxyError!')
@@ -782,7 +776,7 @@ class Timetable:
                 logger.error('requests error(2): ' + str(res))
             else:
                 logger.debug('response.encoding: ' + str(res.encoding))
-                content = res.content.decode('utf-8')
+                content = res.content
             res.close()
 
         # 復帰
