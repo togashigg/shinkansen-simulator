@@ -748,17 +748,19 @@ class Timetable:
                     res = session.get(url, headers=self.__request_headers, proxies=self.__proxies)
                     res.html.render()
                 except requests.exceptions.ProxyError as e:
-                    logger.warning('except ProxyError!')
+                    logger.exception(e)
+                    res = None
                     if (try_i+1) < self.__requests_retry_max:
                         time.sleep(self.__requests_retry_seconds)
                 if try_ok:
                     break
-            if res.status_code != requests.codes.ok:
+            if res is None or res.status_code != requests.codes.ok:
                 logger.error('requests error(1): ' + str(res))
             else:
                 logger.debug('response.encoding: ' + str(res.encoding))
                 content = res.html.html
-            res.close()
+            if res is not None:
+                res.close()
             session.close()
         else:
             for try_i in range(self.__requests_retry_max):
@@ -767,17 +769,19 @@ class Timetable:
                     res = requests.get(url, headers=self.__request_headers, proxies=self.__proxies)
                     try_ok = True
                 except requests.exceptions.ProxyError as e:
-                    logger.warning('except ProxyError!')
+                    logger.exception(e)
+                    res = None
                     if (try_i+1) < self.__requests_retry_max:
                         time.sleep(self.__requests_retry_seconds)
                 if try_ok:
                     break
-            if res.status_code != requests.codes.ok:
+            if res is None or res.status_code != requests.codes.ok:
                 logger.error('requests error(2): ' + str(res))
             else:
                 logger.debug('response.encoding: ' + str(res.encoding))
                 content = res.content
-            res.close()
+            if res is not None:
+                res.close()
 
         # 復帰
         logger.debug('http_get_content() ended.')
