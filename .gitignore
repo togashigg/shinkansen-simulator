@@ -1,7 +1,11 @@
-db.sqlite3
+.vscode/
 __pycache__/
 *.log
 *.pot
+*.pdf
 *.pyc
+*_VSC.*
+db.sqlite3
 local_settings.py
 get_random_secret_key.py
+phina.js
