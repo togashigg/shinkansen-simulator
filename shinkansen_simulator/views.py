@@ -19,9 +19,8 @@ def html(request, filePath):
 
 def json(request, filePath):
     # print("\nstart views.json(), filePath=" + filePath, file=sys.stderr)
-    if '..' in filePath or '/' in filePath or len(filePath) > 255:
-        return HttpResponse(status=404)
-    f = open(os.path.join('cache', os.path.basename(filePath)), 'r')
+    file_name = os.path.basename(filePath)
+    f = open(os.path.join('cache', file_name), 'r')
     response = HttpResponse(f)
     response['content-type'] = 'application/json; charset=utf-8'
     response['Content-Disposition'] = 'attachment; filename=' + filePath
@@ -29,7 +28,8 @@ def json(request, filePath):
 
 def csv(request, filePath):
     # print("\nstart view.csv(), filePath=" + filePath, file=sys.stderr)
-    f = open(os.path.join('cache', filePath), 'r')
+    file_name = os.path.basename(filePath)
+    f = open(os.path.join('cache', file_name), 'r')
     response = HttpResponse(f)
     response['content-type'] = 'text/csv; charset=utf-8'
     response['Content-Disposition'] = 'attachment; filename=' + filePath
@@ -37,7 +37,8 @@ def csv(request, filePath):
 
 def text(request, filePath):
     # print("\nstart view.text(), filePath=" + filePath, file=sys.stderr)
-    f = open(os.path.join('cache', filePath), 'r')
+    file_name = os.path.basename(filePath)
+    f = open(os.path.join('cache', file_name), 'r')
     response = HttpResponse(f)
     response['content-type'] = 'text/text; charset=utf-8'
     response['Content-Disposition'] = 'attachment; filename=' + filePath
