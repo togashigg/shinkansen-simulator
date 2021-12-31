@@ -476,6 +476,18 @@ class Timetable:
                                     dates.append(yyyymm+('0'+str(d))[-2:])
             if len(dates) > 0:
                 result['運休日'] = [d for d in sorted(list(set(dates))) if d <= end]
+        # 「・但し、」の処理
+        if len(rems) > 1:
+            if rems[0][-2:] == '運休':
+                for dt in result['運転日']:
+                    if dt in result['運休日']:
+                        result['運休日'].remove(dt)
+                result['運転日'] = []
+            elif rems[0][-2:] == '運転':
+                for dt in result['運休日']:
+                    if dt in result['運転日']:
+                        result['運転日'].remove(dt)
+                result['運休日'] = []
         # 復帰
         logger.info('interpret_remark() ended, result=' + str(result))
         return result
