@@ -362,8 +362,11 @@ class Timetable:
                 remarks_csv.append(rec)
         for rec in remarks_csv:
             train = rec[0]+'号'
-            if train not in remarks:
-                remarks[train] = {'updown': rec[1], '事項': '', '運転日': [], '運休日': []}
+            if train in remarks:
+                msg = '列車が二重に定義されています。マージして下さい。' + train
+                logger.warning(msg)
+                print('WARNING:' + msg, file=sys.stderr)
+            remarks[train] = {'updown': rec[1], '事項': '', '運転日': [], '運休日': []}
             if rec[2] == '◆':
                 if remarks[train]['事項'] != '':
                     # 現在は許されない：行先が異なる同一列車は解釈不能
@@ -397,6 +400,7 @@ class Timetable:
         result = {'運転日': [], '運休日': []}
         rem_year = start[:4]
         rem_month = start[4:6]
+        rem = rem.replace('[', '').replace(']', '')
         rems = rem.split('・但し、')
         if len(rems) > 1:
             rem = rems[1]
@@ -409,7 +413,7 @@ class Timetable:
                 if int(new_month, base=10) < int(rem_month, base=10):
                     rem_year = str(int(rem_year)+1)
                 rem_month = new_month
-                rem_array = match.group(2).split('・')
+                rem_array = re.split('[・、]', match.group(2))
                 for dt in rem_array:
                     dt = dt.rstrip('日は')
                     m_index = dt.find('月')
@@ -948,7 +952,7 @@ def get_remarks_info(remarks_file, remarks_dir=os.path.join('.', 'remarks')):
     now_date = int(today.strftime('%Y%m%d'))
     if remarks_file is None:
         # 実行日を含む記事ファイルを探す
-        for file_name in os.listdir(remarks_dir):
+        for file_name in sorted(os.listdir(remarks_dir), reverse=True):
             logger.debug('file_name:' + file_name)
             period = None
             file_path = os.path.join(remarks_dir, file_name)
