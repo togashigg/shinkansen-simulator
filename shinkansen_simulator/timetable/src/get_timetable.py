@@ -818,6 +818,7 @@ class Timetable:
         tt_json_str = json.dumps(timetables, ensure_ascii=False, sort_keys=True)
         # 列車毎に改行する
         tt_json_str = re.sub(r'("(こだま|ひかり|のぞみ)[0-9]+号"\:)', r'\n\1', tt_json_str)
+        tt_json_str = re.sub(r'("(down|up)"\: )', r'\n\1', tt_json_str)
         wlen = 0
         with open(file_name, 'w') as fh:
             wlen = fh.write(tt_json_str)
