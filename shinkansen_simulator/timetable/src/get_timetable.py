@@ -103,6 +103,7 @@ class Timetable:
         self.__requests_retry_max = 5
         self.__requests_retry_seconds = WEBAPI_SLEEP_TIME
         self.__diagram_common = {}
+        self.__cleared_date = '00000000'    # YYYYMMDD
 
     def __del__(self):
         """
@@ -139,12 +140,20 @@ class Timetable:
                 for file_name in os.listdir(self.cache_dir):
                     if file_name[0] == '.':
                         continue
+                    if (file_name[-5:] == '.json' or file_name[-5:] == '.html') \
+                    and (file_name[:3] == 'up_' or file_name[:5] == 'down_'):
+                        continue
+                    if (file_name[-8:] == '_up.html' or file_name[-10:] == '_down.html') \
+                    and file_name.split('_')[1] >= self.start:
+                        continue
                     os.remove(os.path.join(self.cache_dir, file_name))
                 with open(cleared_file, 'w') as fh:
                     fh.write('')
             msg = 'cleared in cache directory: ' + self.cache_dir
             logger.info(msg)
             print('INFO:' + msg, file=sys.stderr)
+        if cleared_date is not None:
+            self.__cleared_date = cleared_date
         logger.info('initialize() ended.')
         # 復帰
         return rc
@@ -166,7 +175,8 @@ class Timetable:
             station_encode = urllib.parse.quote(station, encoding='euc_jp').lower()
             # 各駅の下りの出発時刻
             file_name = os.path.join(self.cache_dir, station + '_' + self.today + '_down.html')
-            if os.path.exists(file_name):
+            if os.path.exists(file_name) \
+            and os.path.getsize(file_name) > 0:
                 with open(file_name, 'r') as t_h:
                     stations_timetable[station+'_down'] = t_h.read()
                 logger.debug('used cache: ' + file_name)
@@ -305,10 +315,13 @@ class Timetable:
                 file_name = os.path.join(self.cache_dir, trains[train]+'_'+train+'.json')
             else:
                 file_name = os.path.join(self.cache_dir, trains[train]+'_'+train+'.html')
-            if os.path.exists(file_name):
+            if os.path.exists(file_name) \
+            and os.path.getsize(file_name) > 0:
                 with open(file_name, 'r') as t_h:
                     trains_timetable[train] = t_h.read()
-            else:
+            if not os.path.exists(file_name) \
+            or os.path.getsize(file_name) == 0 \
+            or datetime.fromtimestamp(os.path.getmtime(file_name)).strftime('%Y%m%d') < self.__cleared_date:
                 if train in remarks:
                     if '事項' in remarks[train]:
                         if remarks[train]['事項'][0] == '◆':
@@ -325,12 +338,17 @@ class Timetable:
                                 % (timestamp)
                     logger.debug('列車URL：' + get_url)
                     content = self.http_get_content(get_url)
+                    trains_timetable[train] = content.decode('utf-8')
+                    if trains_timetable[train][0] != '{':
+                        logger.warning('取得したデータがJSON形式以外です。' + train + ':' + trains_timetable[train][:15])
+                        del trains_timetable[train]
+                        continue
                 else:
                     get_url = '%s?traintype=%s&train=%s' \
                                 % (TRAIN_DIAGRAM_URL, train_type, train_no)
                     logger.debug('列車URL：' + get_url)
                     content = self.http_get_content(get_url, script=True)
-                trains_timetable[train] = content.decode('utf-8')
+                    trains_timetable[train] = content.decode('utf-8')
 
                 with open(file_name, 'w') as t_h:
                     t_h.write(trains_timetable[train])
@@ -361,9 +379,11 @@ class Timetable:
                     continue
                 remarks_csv.append(rec)
         for rec in remarks_csv:
+            for i in range(len(rec)):
+                rec[i] = rec[i].strip()
             train = rec[0]+'号'
             if train in remarks:
-                msg = '列車が二重に定義されています。マージして下さい。' + train
+                msg = '列車が二重に定義されています。マージして下さい。' + rec[0]
                 logger.warning(msg)
                 print('WARNING:' + msg, file=sys.stderr)
             remarks[train] = {'updown': rec[1], '事項': '', '運転日': [], '運休日': []}
