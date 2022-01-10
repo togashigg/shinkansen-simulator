@@ -1,5 +1,5 @@
 // train,js: 東海道新幹線なんちゃって運行シミュレーター
-// Copyright (C) N.Togashi 2021
+// Copyright (C) N.Togashi 2021-2022
 // phina.js docs：https://phinajs.com/docs/
 // phina.js Tips集：https://qiita.com/alkn203/items/bca3222f6b409382fe20
 // [phina.js]オブジェクトの操作 -位置、移動、衝突・クリック判定など- について：https://horohorori.com/memo_phina_js/about_object2d/
@@ -23,11 +23,11 @@ if(ENVIRONMENT == 'heroku') {
 	STATIC_PATH = '/static/';
 	CACHE_PATH = '/cache/';
 } else {
-	STATIC_PATH = './'
-	CACHE_PATH = './';
+	STATIC_PATH = '/shinkansen_simulator/static/'
+	CACHE_PATH = '/cache/';
 }
 var PROGRAM_TITLE = '東海道新幹線なんちゃって運行シミュレーター';
-var PROGRAM_VERSION = '0.1.2';
+var PROGRAM_VERSION = '0.1.3';
 var COPYRIGHT = 'Copyright (C) N.Togashi 2021';
 var THANKS = '謝辞：Heroku、GitHub、Docker、Phina.js、phina-talkbubble.js、ＪＲ東海(時刻表)、素材Library.com(日本地図)を使わせて頂きました。';
 var DIAGRAM_VERSION = '20210901版';
@@ -193,10 +193,27 @@ phina.define('MainScene', {
 				y: g_grids.span(1) + PANEL_OFFSET_Y,
 			}).addChildTo(this);
 			this.diagram_version = Label({
-				text: '時刻表：' + DIAGRAM_VERSION,
-				x: g_grids.span(PANEL_NUM_X) + PANEL_OFFSET_X,
+				text: '時刻表:' + DIAGRAM_VERSION + '(     )',
+				x: g_grids.span(PANEL_NUM_X) + PANEL_OFFSET_X + 60 + 22,
 				y: g_grids.span(1) + PANEL_OFFSET_Y,
 				align: 'right',
+			}).addChildTo(this);
+			this.diagram_update1 = Label({
+				text: '????',
+				x: g_grids.span(PANEL_NUM_X) + PANEL_OFFSET_X + 60 + 8,
+				y: g_grids.span(1) + PANEL_OFFSET_Y - 10,
+				align: 'right',
+				fill: 'blue',
+				fontSize: 20,
+				fontWeight: "bold",
+			}).addChildTo(this);
+			this.diagram_update2 = Label({
+				text: '更新',
+				x: g_grids.span(PANEL_NUM_X) + PANEL_OFFSET_X + 60 + 4,
+				y: g_grids.span(1) + PANEL_OFFSET_Y + 8,
+				align: 'right',
+				fill: 'blue',
+				fontSize: 20,
 			}).addChildTo(this);
 			this.date = Label({
 				text: g_start_date.getFullYear()+'年'+('0'+(g_start_date.getMonth()+1)).slice(-2)+'月'+('0'+g_start_date.getDate()).slice(-2)+'日(' + WEEKDAYS[g_start_date.getDay()] + ')',
@@ -211,11 +228,11 @@ phina.define('MainScene', {
 				align: 'right',
 			}).addChildTo(this);
 			this.limitations = Label({
-				text: '※運転日指定の列車もまあまあ動作します！',
-				fill: 'red',
+				text: '※運転日指定の列車は最初の運転日以降に運行可',
+				fill: 'blue',
 				fontSize: 20,
 				fontWeight: "bold",
-				x: g_grids.span(PANEL_NUM_X/2+18) + PANEL_OFFSET_X,
+				x: g_grids.span(PANEL_NUM_X/2+18) + PANEL_OFFSET_X + 32,
 				y: g_grids.span(2) + PANEL_OFFSET_Y,
 				align: 'right',
 			}).addChildTo(this);
@@ -257,7 +274,10 @@ phina.define('MainScene', {
 			});
 			// 時刻表を取得する
 			get_timetable();
-			this.diagram_version.text = '時刻表：' + DIAGRAM_DOWN['property'][1] + '版';
+			this.diagram_version.text = '時刻表:' + DIAGRAM_DOWN['property'][1] + '版(     )';
+			if(DIAGRAM_DOWN['property'].length >= 4) {
+				this.diagram_update1.text = (''+DIAGRAM_DOWN['property'][3]).substr(4,4);
+			}
 			// のぞみの列車数：吹き出しの位置調整用
 			this.down_nozomi_count = 0;
 			this.up_nozomi_count = 0;

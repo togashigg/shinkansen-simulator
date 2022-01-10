@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # get_timetable.py: 東海道新幹線の時刻表HTMLを取得して時刻表を作成する
+# Copyright (C) N.Togashi 2021-2022
 # JR各駅の時刻表：https://railway.jr-central.co.jp/time-schedule/search/index.html
 # JR個別列車案内：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti05.html
 # JR個別列車案内(こだま)：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti07.html?traintype=2&train=723
@@ -547,11 +548,11 @@ class Timetable:
         logger = getLogger(__name__)
         logger.info('make_timetable_from_json() start.')
         timetables_down = {
-            'property': ['down', int(self.start), int(self.end)], # up/down, 開始日, 終了日
+            'property': ['down', int(self.start), int(self.end), int(self.today)], # up/down, 開始日, 終了日, 更新日
                                                         # '列車名': timetable
         }
         timetables_up = {
-            'property': ['up', int(self.start), int(self.end)],   # up/down, 開始日, 終了日
+            'property': ['up', int(self.start), int(self.end), int(self.today)],   # up/down, 開始日, 終了日, 更新日
                                                         # '列車名': timetable
         }
         stations_name = self.__diagram_common['constant']['station']
@@ -661,11 +662,11 @@ class Timetable:
         logger = getLogger(__name__)
         logger.info('make_timetable_from_html() start.')
         timetables_down = {
-            'property': ['down', int(self.start), int(self.end)], # up/down, 開始日, 終了日
+            'property': ['down', int(self.start), int(self.end), int(self.today)], # up/down, 開始日, 終了日, 更新日
                                                         # '列車名': timetable
         }
         timetables_up = {
-            'property': ['up', int(self.start), int(self.end)],   # up/down, 開始日, 終了日
+            'property': ['up', int(self.start), int(self.end), int(self.today)],   # up/down, 開始日, 終了日, 更新日
                                                         # '列車名': timetable
         }
         train_i = 0
