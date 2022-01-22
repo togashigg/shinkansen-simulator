@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 # get_timetable.py: 東海道新幹線の時刻表HTMLを取得して時刻表を作成する
 # Copyright (C) N.Togashi 2021-2022
 # JR各駅の時刻表：https://railway.jr-central.co.jp/time-schedule/search/index.html
@@ -975,6 +976,8 @@ def get_remarks_info(remarks_file, remarks_dir=os.path.join('.', 'remarks')):
     if remarks_file is None:
         # 実行日を含む記事ファイルを探す
         for file_name in sorted(os.listdir(remarks_dir), reverse=True):
+            if file_name[-4:] != '.csv':
+                continue
             logger.debug('file_name:' + file_name)
             period = None
             file_path = os.path.join(remarks_dir, file_name)
