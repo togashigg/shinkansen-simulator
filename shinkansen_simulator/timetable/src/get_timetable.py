@@ -137,6 +137,7 @@ class Timetable:
                 break
         if cleared_date is None \
         or cleared_date < self.start:
+            cleared_date = self.today
             cleared_file = os.path.join(self.cache_dir, 'cleared_' + self.today)
             if not os.path.exists(cleared_file):
                 for file_name in os.listdir(self.cache_dir):
@@ -144,7 +145,9 @@ class Timetable:
                         continue
                     if (file_name[-5:] == '.json' or file_name[-5:] == '.html') \
                     and (file_name[:3] == 'up_' or file_name[:5] == 'down_'):
-                        continue
+                        file_path = os.path.join(self.cache_dir, file_name)
+                        if datetime.fromtimestamp(os.path.getmtime(file_path)).strftime('%Y%m%d') >= self.start:
+                            continue
                     if (file_name[-8:] == '_up.html' or file_name[-10:] == '_down.html') \
                     and file_name.split('_')[1] >= self.start:
                         continue
@@ -200,7 +203,8 @@ class Timetable:
             if station == '東京':
                 continue
             file_name = os.path.join(self.cache_dir, station + '_' + self.today + '_up.html')
-            if os.path.exists(file_name):
+            if os.path.exists(file_name) \
+            and os.path.getsize(file_name) > 0:
                 with open(file_name, 'r') as t_h:
                     stations_timetable[station+'_up'] = t_h.read()
                     logger.debug('used cache: ' + file_name)
@@ -288,7 +292,8 @@ class Timetable:
             timestamp = str(datetime.now().timestamp())
             timestamp = timestamp[:timestamp.index('.')+4].replace('.', '')
             file_name = os.path.join(self.cache_dir, 'common_ja.json')
-            if os.path.exists(file_name):
+            if os.path.exists(file_name) \
+            and os.path.getsize(file_name) > 0:
                 with open(file_name, 'r') as t_h:
                     self.__diagram_common = json.loads(t_h.read())
             else:
