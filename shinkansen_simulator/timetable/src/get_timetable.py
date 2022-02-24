@@ -311,9 +311,10 @@ class Timetable:
             train_i += 1
             msg = '各列車の時刻表取得：' + train  + '  ' + str(train_i) + '/' + str(len(trains))
             logger.info(msg)
-            print('INFO:' + msg, file=sys.stderr)
+            print('INFO:' + msg, file=sys.stderr, end='')
             if train[:3] not in TRAIN_TYPES:
                 logger.warning('対象外車種？：' + train)
+                print(' 対象外車種？', file=sys.stderr)
                 continue
             trains_timetable[train] = ''
             train_type = TRAIN_TYPES[train[:3]]
@@ -334,11 +335,14 @@ class Timetable:
                         if remarks[train]['事項'][0] == '◆':
                             if '運転日' in remarks[train] and len(remarks[train]['運転日']) > 0:
                                 if self.today not in remarks[train]['運転日']:
+                                    print(' 運転日以外', file=sys.stderr)
                                     continue
                             if '運休日' in remarks[train] and len(remarks[train]['運休日']) > 0:
                                 if self.today in remarks[train]['運休日']:
+                                    print(' 運休日', file=sys.stderr)
                                     continue
                 if get_json:
+                    print(' JSONデータ取得中...', file=sys.stderr, end='')
                     get_url = TRAIN_DIAGRAM_JSON \
                                 % (train_type, train_no) \
                             + '?timestamp=%s' \
@@ -349,8 +353,10 @@ class Timetable:
                     if trains_timetable[train][0] != '{':
                         logger.warning('取得したデータがJSON形式以外です。' + train + ':' + trains_timetable[train][:15])
                         del trains_timetable[train]
+                        print(' 失敗', file=sys.stderr)
                         continue
                 else:
+                    print(' HTMLデータ取得中...', file=sys.stderr, end='')
                     get_url = '%s?traintype=%s&train=%s' \
                                 % (TRAIN_DIAGRAM_URL, train_type, train_no)
                     logger.debug('列車URL：' + get_url)
@@ -361,6 +367,8 @@ class Timetable:
                     t_h.write(trains_timetable[train])
                 if train_i < len(trains):
                     time.sleep(WEBAPI_SLEEP_TIME)
+
+            print(' 完了', file=sys.stderr)
 
         logger.info('trains_timetable keys:' + str(sorted(list(trains_timetable.keys()))))
         logger.info('get_trains_timetable() ended.')
