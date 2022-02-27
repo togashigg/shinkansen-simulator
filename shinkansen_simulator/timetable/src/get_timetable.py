@@ -810,7 +810,7 @@ class Timetable:
         # 復帰
         return timetables
 
-    def write_timetable(self, timetables, output_dir='./output', file=None, files_max=10):
+    def write_timetable(self, timetables, output_dir='./output', file=None, files_max=31):
         """
         dict型、各列車の時刻表をファイルに出力する。
         :param timetables: dict型、各列車の時刻表

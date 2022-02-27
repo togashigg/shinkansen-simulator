@@ -36,6 +36,7 @@ import tabula
 # PDFが暗号化されている場合は復号する
 # PyPDF2を使用
 def my_pdf2decrypt(input_pdf):
+    print(get_current_time() + ' my_pdf2decrypt() start.', file=sys.stderr)
     output_pdf = input_pdf
     pgnum = None
     with open(input_pdf, 'rb') as f_pdf:
@@ -50,12 +51,15 @@ def my_pdf2decrypt(input_pdf):
                 for i in range(pgnum):
                     output.addPage(pdf.getPage(i))
                 output.write(output_pdf) 
-                outputfile.close()
+                output.close()
+                print(get_current_time() + ' decrypted pdf, ' + input_pdf, file=sys.stderr)
             except NotImplementedError:
+                print(get_current_time() + ' start decrypting pdf by qpdf... from ' + input_pdf, file=sys.stderr)
                 command = f"qpdf --password='{password}' --decrypt {input_pdf} {output_pdf};"
                 os.system(command)
                 if not os.path.exists(output_pdf):
                     raise Exception('ERR: error in decrypt by qpdf.')
+                print(get_current_time() + ' ended decrypting pdf by qpdf, to ' + output_pdf, file=sys.stderr)
         else:
             pgnum = pdf.getNumPages()
 
@@ -63,12 +67,15 @@ def my_pdf2decrypt(input_pdf):
         with open(output_pdf, 'rb') as f_pdf:
             pdf = PdfFileReader(f_pdf)
             pgnum = pdf.getNumPages()
+    print('page number = ' + str(pgnum), file=sys.stderr)
 
+    print(get_current_time() + ' my_pdf2decrypt() ended.', file=sys.stderr)
     return output_pdf, pgnum
 
 # pdfをページ毎に分割してpdfを生成する。またそのファイル名をリストで返す
 # PyPDF2を使用
 def my_pdf_split(input_pdf):
+    print(get_current_time() + ' my_pdf_split() start.', file=sys.stderr)
     file_name_list = []
     f2 = None
     with open(input_pdf, 'rb') as f1:
@@ -96,11 +103,13 @@ def my_pdf_split(input_pdf):
         f2.close()
         os.remove(decrypted_pdf)
 
+    print(get_current_time() + ' my_pdf_split() ended.', file=sys.stderr)
     return file_name_list
 
 # PDFから表形式部分をリスト型で抽出する
 # tabulaを使用
 def my_pdf2data(my_pdf, pages):
+    print(get_current_time() + ' my_pdf2data() start.', file=sys.stderr)
     csv_file = my_pdf[:-4] + '.csv'
     csv_data = []
     if os.path.exists(csv_file):
@@ -111,9 +120,14 @@ def my_pdf2data(my_pdf, pages):
                     csv_data.append([])
                 else:
                     csv_data[-1].append(rec)
+        print(get_current_time() + ' my_pdf2data() ended, data already exists', file=sys.stderr)
         return csv_data
 
+    print('  ' + str(len(pages)) + ':', file=sys.stderr, end='')
+    pgcnt = 0
     for page in pages:
+        pgcnt += 1
+        print(str(pgcnt) + '...', file=sys.stderr, end='')
         csv_data.append([])
         # lattice=Trueでテーブルの軸線でセルを判定
         dfs = tabula.read_pdf(my_pdf, lattice=True, pages=str(page))
@@ -138,6 +152,7 @@ def my_pdf2data(my_pdf, pages):
 
         # df.to_csv("PDFの表.csv", index=None)      # CSV
         # df.to_excel("PDFの表.xlsx", index=None)   # Excel
+    print('end', file=sys.stderr)
 
     # print(str(csv_data), file=sys.stderr)
     with open(csv_file, 'w') as f_csv:
@@ -147,11 +162,13 @@ def my_pdf2data(my_pdf, pages):
             for row in csv_data[page_i]:
                 h_csv.writerow(row)
 
+    print(get_current_time() + ' my_pdf2data() ended.', file=sys.stderr)
     return csv_data
 
 # PDFからページ単位にテキストを抽出する
 # pdfminerを使用
 def my_pdf2txt(my_pdf, pages):
+    print(get_current_time() + ' my_pdf2txt() start.', file=sys.stderr)
     txt_file = my_pdf[:-4] + '.txt'
     txt_data = []
     if os.path.exists(txt_file):
@@ -161,10 +178,15 @@ def my_pdf2txt(my_pdf, pages):
                     txt_data.append([])
                 else:
                     txt_data.append(rec)
+        print(get_current_time() + ' my_pdf2txt() ended, text file already exists', file=sys.stderr)
         return txt_data
 
     with open(my_pdf, 'rb') as f_pdf:
+        print('  ' + str(len(pages)) + ':', file=sys.stderr, end='')
+        pgcnt = 0
         for page in PDFPage.get_pages(f_pdf):
+            pgcnt += 1
+            print(str(pgcnt) + '...', file=sys.stderr, end='')
             manager = PDFResourceManager()
             out_string = io.StringIO()
             laparams = LAParams()
@@ -176,6 +198,7 @@ def my_pdf2txt(my_pdf, pages):
             text = text.replace('\r', '')
             txt_data.append(text)
             out_string.close()
+        print('end', file=sys.stderr)
 
     with open(txt_file, 'w') as h_txt:
         for txt_i in range(len(txt_data)):
@@ -183,10 +206,12 @@ def my_pdf2txt(my_pdf, pages):
             print('【【' + str(pages[txt_i]) + '】】', file=h_txt)
             print(txt, file=h_txt)
 
+    print(get_current_time() + ' my_pdf2txt() ended.', file=sys.stderr)
     return txt_data
 
 # ページ単位のリスト型表データから記事用CSVを出力する
 def my_data2remarks(csv_data, span, output_csv):
+    print(get_current_time() + ' my_data2remarks() start.', file=sys.stderr)
     train_data = []
     for page in csv_data:
         for i in range(1, len(page[0])):
@@ -208,10 +233,12 @@ def my_data2remarks(csv_data, span, output_csv):
                     updown = 'up'
                 h_csv.writerow([train[0], updown, train[1], ''])
 
+    print(get_current_time() + ' my_data2remarks() ended.', file=sys.stderr)
     return
 
 # 時刻表の有効期間を抽出する
 def my_get_timetable_span(txt_data):
+    print(get_current_time() + ' my_get_timetable_span() start.', file=sys.stderr)
     # １２月１日（水）～１月１０日（月）の運転列車　　Timetable ( December 1st ～ January 10th )
     number = {'０':'0', '１':'1', '２':'2', '３':'3', '４':'4', '５':'5', '６':'6', '７':'7', '８':'8', '９':'9'}
     span_txt = [txt for txt in txt_data if '運転列車' in txt][0]
@@ -232,12 +259,19 @@ def my_get_timetable_span(txt_data):
             start_year = str(year-1)
         else:
             end_year = str(year+1)
-    return [start_year+start_month+start_day,
+    rc = [start_year+start_month+start_day,
             end_year+end_month+end_day]
 
+    print(get_current_time() + ' my_get_timetable_span() ended, rc=' + str(rc), file=sys.stderr)
+    return rc
+
+# 現在時刻を文字列で取得
+def get_current_time():
+    return datetime.now().strftime('%H:%M:%S')
 
 # 実行
 if __name__ == '__main__':
+    print(get_current_time() + ' pdf2remarks.py start.', file=sys.stderr)
     input_pdf = sys.argv[1]
     output_csv = input_pdf[:-4] + '_remarks.csv'
 
@@ -260,4 +294,5 @@ if __name__ == '__main__':
     #     os.remove(decrypted_pdf)
 
     # 復帰
+    print(get_current_time() + ' pdf2remarks.py ended.', file=sys.stderr)
     sys.exit(0)
