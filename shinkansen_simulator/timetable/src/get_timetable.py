@@ -1080,7 +1080,7 @@ def setup_logger(name, level, log_file='get_timetable.log', log_dir='log'):
 if __name__ == '__main__':
     # 初期化
     rc = 0
-    logger = setup_logger(__name__, DEBUG)
+    logger = setup_logger(__name__, INFO)  # DEBUG
 
     try:
         # コマンドのパラメタを取得する
