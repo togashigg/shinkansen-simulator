@@ -318,7 +318,7 @@ class Timetable:
                 continue
             trains_timetable[train] = ''
             train_type = TRAIN_TYPES[train[:3]]
-            train_no = train[3:-1]
+            train_no = train.split('.')[0][3:-1]
             if get_json:
                 file_name = os.path.join(self.cache_dir, trains[train]+'_'+train+'.json')
             else:
@@ -379,7 +379,7 @@ class Timetable:
         """
         時刻表の特記事項を読み込む。
         :param remarks_file: str型、時刻表の特記事項を記載したCSVファイル、例：時刻表_210901_0930_記事.csv
-                                    内容例：◆,こだま802,土曜・休日運休
+                                    内容例：こだま802,up,◆,土曜・休日運休
         :return: dict型、特記事項、例：{'こだま802号': {'updown': 'up', '事項': '土曜・休日運休', '運転日': [], '運休日': [,,,]}}
         """
         logger = getLogger(__name__)
@@ -398,9 +398,16 @@ class Timetable:
                 rec[i] = rec[i].strip()
             train = rec[0]+'号'
             if train in remarks:
-                msg = '列車が二重に定義されています。マージして下さい。' + rec[0]
-                logger.warning(msg)
-                print('WARNING:' + msg, file=sys.stderr)
+                # msg = '列車が二重に定義されています。マージして下さい。' + rec[0]
+                # logger.warning(msg)
+                # print('WARNING:' + msg, file=sys.stderr)
+                # 列車名の後に「.1」等の追番を付加する
+                if type(remarks[train]) == dict:
+                    remarks[train + '.1'] = remarks[train]
+                    remarks[train] = 2
+                else:
+                    remarks[train] += 1
+                train = train + '.' + str(remarks[train])
             remarks[train] = {'updown': rec[1], '事項': '', '運転日': [], '運休日': []}
             if rec[2] == '◆':
                 if remarks[train]['事項'] != '':
@@ -416,6 +423,10 @@ class Timetable:
                 if remarks[train]['事項'] != '':
                     remarks[train]['事項'] += '\n'
                 remarks[train]['事項'] += rec[2] + rec[3]
+
+        for train in list(remarks.keys()):
+            if type(remarks[train]) != dict:
+                del remarks[train]
 
         print('INFO:時刻表の特記事項を読み込み終了', file=sys.stderr)
         logger.info('remarks keys: ' + str(sorted(list(remarks.keys()))))
@@ -542,6 +553,8 @@ class Timetable:
         print('INFO:時刻表の特記事項から列車名を追加', file=sys.stderr)
         trains_append = []
         for train in remarks.keys():
+            if type(remarks[train]) != dict:
+                continue
             if train not in trains:
                 trains[train] = remarks[train]['updown']
                 trains_append.append(train + '(' + remarks[train]['updown'] + ')')
@@ -831,7 +844,7 @@ class Timetable:
             logger.info('maked output_dir: ' + output_dir)
         tt_json_str = json.dumps(timetables, ensure_ascii=False, sort_keys=True)
         # 列車毎に改行する
-        tt_json_str = re.sub(r'("(こだま|ひかり|のぞみ)[0-9]+号"\:)', r'\n\1', tt_json_str)
+        tt_json_str = re.sub(r'("(こだま|ひかり|のぞみ)[0-9]+号\.?[0-9]*"\:)', r'\n\1', tt_json_str)
         tt_json_str = re.sub(r'("(down|up)"\: )', r'\n\1', tt_json_str)
         wlen = 0
         with open(file_name, 'w') as fh:
@@ -1134,7 +1147,7 @@ if __name__ == '__main__':
         ttobj = Timetable(remarks_info['start_date'], remarks_info['end_date'],
                         cache_timetable=args.cache_timetable)
         if args.verify_remarks:
-            # 時刻表の記事の内容確認か
+            # 時刻表の記事の内容確認
             rem = ttobj.get_remarks_file(remarks_info['path'])
             for k, v in rem.items():
                 print(k, v)
