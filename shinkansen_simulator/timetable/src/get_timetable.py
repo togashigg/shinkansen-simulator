@@ -510,18 +510,25 @@ class Timetable:
                         for yyyymm in months:
                             dt = datetime.strptime(yyyymm+'01', '%Y%m%d')
                             (weekday1, days) = calendar.monthrange(dt.year, dt.month)
-                            dates.extend([yyyymm+('0'+str(d))[-2:] for d in range(1, days+1) if ((weekday1+d-1)%7) == 5])
+                            saturday = [yyyymm+('0'+str(d))[-2:] for d in range(1, days+1) if ((weekday1+d-1)%7) == 5]
+                            saturday = [d for d in saturday if d >= self.start and d <= self.end]
+                            dates.extend(saturday)
                     if rem1 == '休日' or rem1 == '休日運休' or rem1 == '土曜・休日運休':    # 日曜日
                         for yyyymm in months:
                             dt = datetime.strptime(yyyymm+'01', '%Y%m%d')
                             (weekday1, days) = calendar.monthrange(dt.year, dt.month)
-                            dates.extend([yyyymm+('0'+str(d))[-2:] for d in range(1, days+1) if ((weekday1+d-1)%7) == 6])
+                            sunday = [yyyymm+('0'+str(d))[-2:] for d in range(1, days+1) if ((weekday1+d-1)%7) == 6]
+                            sunday = [d for d in sunday if d >= self.start and d <= self.end]
+                            dates.extend(sunday)
                     if rem1 == '休日' or rem1 == '休日運休' or rem1 == '土曜・休日運休':    # 祝日
                         for yyyymm in months:
                             dt = datetime.strptime(yyyymm+'01', '%Y%m%d')
                             (weekday1, days) = calendar.monthrange(dt.year, dt.month)
                             for d in range(1, days+1):
-                                dt = datetime.strptime(yyyymm+('0'+str(d))[-2:], '%Y%m%d')
+                                dt = yyyymm+('0'+str(d))[-2:]
+                                if dt < self.start or dt > self.end:
+                                    continue
+                                dt = datetime.strptime(dt, '%Y%m%d')
                                 if jpholiday.is_holiday(dt):
                                     dates.append(yyyymm+('0'+str(d))[-2:])
             if len(dates) > 0:
