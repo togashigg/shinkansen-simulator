@@ -12,6 +12,7 @@
 # JR列車走行位置：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti08.html
 # JR三島駅下り：https://railway.jr-central.co.jp/cgi-bin/timetable/tokainr.cgi?MODE=7&HOUR=0&DIAF=%bb%b0%c5%e7&DIAR=%c5%ec%b3%a4%c6%bb%a1%a6%bb%b3%cd%db%bf%b7%b4%b4%c0%fe&DIAD=1
 # JR三島駅上り：https://railway.jr-central.co.jp/cgi-bin/timetable/tokainr.cgi?MODE=7&HOUR=0&DIAF=%bb%b0%c5%e7&DIAR=%c5%ec%b3%a4%c6%bb%a1%a6%bb%b3%cd%db%bf%b7%b4%b4%c0%fe&DIAD=2
+# ドクターイエロー：https://oyaji-photo.club/dy/
 # requestsで取得できないWebページをスクレイピングする方法：
 #               https://gammasoft.jp/blog/how-to-download-web-page-created-javascript/
 # Pythonでかんたんスクレイピング （JavaScript・Proxy・Cookie対応版）：
@@ -22,8 +23,6 @@
 #   sudo pip3 install requests-html
 #   sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
 # Ubuntu 18.04でのみ動作（Python3.6のみ動作）
-# Free Proxy：http://free-proxy.cz/ja/proxylist/country/JP/https/ping/all
-#             sudo pip3 install urllib3==1.25.11
 
 import os
 import sys
@@ -144,9 +143,11 @@ class Timetable:
                     if file_name[0] == '.':
                         continue
                     if (file_name[-5:] == '.json' or file_name[-5:] == '.html') \
-                    and (file_name[:3] == 'up_' or file_name[:5] == 'down_'):
+                    and (file_name[:3] == 'up_' or file_name[:5] == 'down_' or file_name[:10] == 'timetable_'):
                         file_path = os.path.join(self.cache_dir, file_name)
                         if datetime.fromtimestamp(os.path.getmtime(file_path)).strftime('%Y%m%d') >= self.start:
+                            continue
+                        if '_回送9' in file_name:
                             continue
                     if (file_name[-8:] == '_up.html' or file_name[-10:] == '_down.html') \
                     and file_name.split('_')[1] >= self.start:
@@ -312,7 +313,7 @@ class Timetable:
             msg = '各列車の時刻表取得：' + train  + '  ' + str(train_i) + '/' + str(len(trains))
             logger.info(msg)
             print('INFO:' + msg, file=sys.stderr, end='')
-            if train[:3] not in TRAIN_TYPES:
+            if train[:3] not in TRAIN_TYPES or train[:2] == '回送':
                 logger.warning('対象外車種？：' + train)
                 print(' 対象外車種？', file=sys.stderr)
                 continue
@@ -600,9 +601,11 @@ class Timetable:
             train_file = os.path.join(self.cache_dir, 'timetable_'+trains[train]+'_'+train+'.json')
             get_file = os.path.join(self.cache_dir, trains[train]+'_'+train+'.json')
             if train not in trains_timetable or not os.path.exists(get_file):
-                if self.cache_timetable and os.path.exists(train_file):
+                if os.path.exists(train_file):
                     with open(train_file, 'r') as fh:
                         timetable = json.loads(fh.read())
+                    if train in remarks:
+                        timetable['remarks'] = remarks[train]
                     if trains[train] == 'down':
                         timetables_down[train] = timetable  # 下り
                     else:
@@ -643,7 +646,6 @@ class Timetable:
                         stations_name[train_term['station']]
                 ],
                 'remarks': {'事項': '', '運転日': [], '運休日': []},
-                'status': [None, -1, -1],
                 'timeLine': []              # [[駅ID, 到着時刻, 出発時刻], ...]
             }
             if remarks != None and train in remarks:
@@ -712,7 +714,7 @@ class Timetable:
             train_file = os.path.join(self.cache_dir, 'timetable_'+trains[train]+'_'+train+'.json')
             get_file = os.path.join(self.cache_dir, trains[train]+'_'+train+'.html')
             if train not in trains_timetable or not os.path.exists(get_file):
-                if self.cache_timetable and os.path.exists(train_file):
+                if os.path.exists(train_file):
                     with open(train_file, 'r') as fh:
                         timetable = json.loads(fh.read())
                     if trains[train] == 'down':
@@ -760,7 +762,6 @@ class Timetable:
                         train_term[2]
                 ],
                 'remarks': {'事項': '', '運転日': [], '運休日': []},
-                'status': [None, -1, -1],
                 'timeLine': []              # [[駅ID, 到着時刻, 出発時刻], ...]
             }
             if remarks != None and train in remarks:
@@ -851,7 +852,7 @@ class Timetable:
             logger.info('maked output_dir: ' + output_dir)
         tt_json_str = json.dumps(timetables, ensure_ascii=False, sort_keys=True)
         # 列車毎に改行する
-        tt_json_str = re.sub(r'("(こだま|ひかり|のぞみ)[0-9]+号\.?[0-9]*"\:)', r'\n\1', tt_json_str)
+        tt_json_str = re.sub(r'("(こだま|ひかり|のぞみ|回送)[0-9]+号\.?[0-9]*"\:)', r'\n\1', tt_json_str)
         tt_json_str = re.sub(r'("(down|up)"\: )', r'\n\1', tt_json_str)
         wlen = 0
         with open(file_name, 'w') as fh:

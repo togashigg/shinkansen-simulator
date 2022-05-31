@@ -12,6 +12,7 @@
 // JR東海個別列車時刻表(ひかり)：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti07.html?traintype=1&train=511
 // JR東海個別列車時刻表(のぞみ)：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti07.html?traintype=6&train=31
 // 素材Library.com > 無料イラストTOP > 地図, 日本地図 > 日本地図（ベクターデータ）のイラスト素材・白フチと海：https://www.sozai-library.com/sozai/2528
+// ドクターイエロー：https://oyaji-photo.club/dy/
 
 // phina.js をグローバル領域に展開
 phina.globalize();
@@ -27,7 +28,7 @@ if(ENVIRONMENT == 'heroku') {
 	CACHE_PATH = '/cache/';
 }
 var PROGRAM_TITLE = '東海道新幹線なんちゃって運行シミュレーター';
-var PROGRAM_VERSION = '0.1.3';
+var PROGRAM_VERSION = '0.1.4';
 var COPYRIGHT = 'Copyright (C) N.Togashi 2021';
 var THANKS = '謝辞：Heroku、GitHub、Docker、Phina.js、phina-talkbubble.js、ＪＲ東海(時刻表)、素材Library.com(日本地図)を使わせて頂きました。';
 var DIAGRAM_VERSION = '20210901版';
@@ -129,9 +130,11 @@ var ASSETS = {
 		'N700下りのぞみ':	STATIC_PATH + 'images/N700系下りのぞみ.png',
 		'N700下りひかり':	STATIC_PATH + 'images/N700系下りひかり.png',
 		'N700下りこだま':	STATIC_PATH + 'images/N700系下りこだま.png',
+		'N700下り回送9':	STATIC_PATH + 'images/N700系下りイエロー.png',
 		'N700上りのぞみ':	STATIC_PATH + 'images/N700系上りのぞみ.png',
 		'N700上りひかり':	STATIC_PATH + 'images/N700系上りひかり.png',
 		'N700上りこだま':	STATIC_PATH + 'images/N700系上りこだま.png',
+		'N700上り回送9':	STATIC_PATH + 'images/N700系上りイエロー.png',
 	},
 }
 WEEKDAYS = ['日','月','火','水','木','金','土'];
@@ -384,7 +387,8 @@ phina.define('MainScene', {
 					continue;
 				}
 				if(is_operating_datetime(DIAGRAM_DOWN[key], cDate, cTime)) {
-					if(key.substr(0, 3) == 'のぞみ') {
+					if(key.substr(0, 3) == 'のぞみ'
+					|| key == '回送983号') {
 						this.down_nozomi_count++;
 					}
 					// console.log('MainScene.update Train(down):' + DIAGRAM_DOWN[key]['property'].join(','));
@@ -399,7 +403,8 @@ phina.define('MainScene', {
 					continue;
 				}
 				if(is_operating_datetime(DIAGRAM_UP[key], cDate, cTime)) {
-					if(key.substr(0, 3) == 'のぞみ') {
+					if(key.substr(0, 3) == 'のぞみ'
+					|| key == '回送980号') {
 						this.up_nozomi_count++;
 					}
 					// console.log('MainScene.update Train(up):' + DIAGRAM_UP[key]['property'].join(','));
@@ -514,12 +519,24 @@ phina.define('Train', {
 					tipProtrusion += 64;
 					balloon_posY += balloon_posY_sign * 64;
 				}
+			} else if(this.name == '回送980号'
+				|| this.name == '回送983号') {
+				balloon_color = "yellow";	// yellow=#ffff00
+				if((count % 2) == nozomi_near) {
+					tipProtrusion += 64;
+					balloon_posY += balloon_posY_sign * 64;
+				}
 			} else if(this.name.substr(0, 3) == 'ひかり') {
 				balloon_color = "tomato";	// tomato=#ff6347
 				tipProtrusion += 128;
 				balloon_posY += balloon_posY_sign * 128;
 			} else if(this.name.substr(0, 3) == 'こだま') {
 				balloon_color = "lightsteelblue";	// lightsteelblue=#e6e6fa
+				tipProtrusion += 192;
+				balloon_posY += balloon_posY_sign * 192;
+			} else if(this.name == '回送981号'
+				|| this.name == '回送982号') {
+				balloon_color = "yellow";	// yellow=#ffff00
 				tipProtrusion += 192;
 				balloon_posY += balloon_posY_sign * 192;
 			}
@@ -1076,6 +1093,12 @@ function get_timetable() {
 	xhr.setRequestHeader('Access-Control-Allow-Origin', '*');
 	xhr.send();
 	xhr.abort();
+	for(let updown of ['down', 'up']) {
+		for(let key in tt_json[updown]) {
+			if(key == 'property') continue;
+			tt_json[updown][key]['status'] = [null, -1, -1];
+		}
+	}
 	DIAGRAM_DOWN = tt_json['down'];
 	DIAGRAM_UP = tt_json['up'];
 	// console.log(DIAGRAM_DOWN);
@@ -1429,7 +1452,9 @@ function calcTrainPosition(train) {
 					for(let j=0; j<trains.length; j++) {
 						if(trains[j].status[TS_ID] == TRAIN_OUTOF_RAIL
 						|| trains[j].name == train.name
-						|| trains[j].name.substr(0,3) == 'のぞみ') {
+						|| trains[j].name.substr(0,3) == 'のぞみ'
+						|| trains[j].name == '回送980号'
+						|| trains[j].name == '回送983号') {
 							continue;
 						}
 						if(trains[j].train_location <= new_location
