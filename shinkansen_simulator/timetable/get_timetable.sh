@@ -80,7 +80,7 @@ function diff_func() {
             cd $GITHUB_CACHE
             git pull
             cp -p ${TIMETABLE_OUTPUT}$timetable_new ./$TIMETABLES_JSON
-            rit add $TIMETABLES_JSON
+            git add $TIMETABLES_JSON
             git commit -m "update $TIMETABLES_JSON by get_timetable.sh"
             git push
             if [ $HEROKU_PUSH -eq 1 ]; then
