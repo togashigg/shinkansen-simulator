@@ -15,6 +15,8 @@
 　実際に見てみると想像以上の混雑ぶりでびっくりしました。特にのぞみ号の追い抜きぶりは凄くて、
 こだま号やひかり号が可哀想になります。出張ではこだま号を使っていたため身に染みてわかります。
 
+　<span style="color:red;">試しと言っては何ですが、ホームページ「[OYAJI PHOTO CLUB](https://oyaji-photo.club/dy/)」さんのドクターイエローの運行予想を勝手に取り入れさせて頂きました。どきどきしながら見る楽しみが増えました。ありがごうございます。</span>
+
 　まだまだ不完全な部分が多いですが、ぼちぼち改善していきたいと考えています。
 
   - 列車は停車駅間を等速度で走行します。駅内徐行、加速、区間毎の最高速度、カーブでの減速などを実現したい。
@@ -43,6 +45,7 @@
   - [JPHoliday](https://github.com/Lalcs/jpholiday)
   - [requests-html](https://pypi.org/project/requests-html/)
   - [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/)
+  - [OYAJI PHOTO CLUBさんのドクターイエロー](https://oyaji-photo.club/dy/)
 
 ## Herokuで運用中
 
@@ -70,9 +73,11 @@
      ```
      $ mkdir ~/timetable
      $ mkdir ~/timetable/cache
+     $ cp -p shinkansen_simulator/timetable/cache/* ~/timetable/cache/
      $ mkdir ~/timetable/log
      $ mkdir ~/timetable/output
      $ mkdir ~/timetable/remarks
+     $ cp -p shinkansen_simulator/timetable/remarks/* ~/timetable/remarks/
      ```
   5. Dockerコンテナを起動する。
      ```
@@ -122,6 +127,8 @@
      ```
 
 ### Herokuでの構築手順（作成者メモ）
+
+  <span style="color:red;">※認証機能が強化されたためGitHub連携が使えなくなっており、改善策を模索中です。</span>
 
 #### Herokuにユーザ登録する
 
@@ -487,4 +494,4 @@
     ```
 
 ----
-Copyright (C) N.Togashi 2021
+Copyright (C) N.Togashi 2021-2022
