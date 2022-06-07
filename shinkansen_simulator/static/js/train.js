@@ -1378,10 +1378,11 @@ function calcTrainPosition(train) {
 				// 次の駅の間
 				st_id = train.diagram['timeLine'][tl_i][0];
 				let st_id_next = train.diagram['timeLine'][tl_i+1][0];
+				let st_id_next_stop = st_id_next;
 				train.train_st_id = st_id;
 				for(let j=tl_i+1; j<train.diagram['timeLine'].length; j++) {
 					if(train.diagram['timeLine'][j][3] == 0) {
-						st_id_next = train.diagram['timeLine'][j][0];
+						st_id_next_stop = train.diagram['timeLine'][j][0];
 						break;
 					}
 				}
@@ -1408,7 +1409,7 @@ function calcTrainPosition(train) {
 					msg = '走行中（駅間を走行中）';
 				}
 				train.status[TS_STATION] = st_id;
-				train.status[TS_NEXT] = st_id_next;
+				train.status[TS_NEXT] = st_id_next_stop;
 				// 列車の位置を計算する
 				let from_st_id = 0;
 				let to_st_id = st_id;
@@ -1629,17 +1630,17 @@ function get_train_taimetable(name, up_down) {
 	tt += diagram[name]['property'][3] + '発 ' + diagram[name]['property'][4] + '行';
 	tt += '\n-------';
 	for(let i=0; i<diagram[name]['timeLine'].length; i++) {
-		if(diagram[name]['timeLine'][i][3] == 1) {
-			continue;
-		}
 		tt += '\n' + ('　　'+STATIONS[diagram[name]['timeLine'][i][0]][1]).slice(-4) + '駅：';
-		if(i == 0) {
-			tt += '　　　　　';
-		} else {
+		if(diagram[name]['timeLine'][i][3] == 0) {
 			tt += diagram[name]['timeLine'][i][1] + '着　';
-		}
-		if(i < (diagram[name]['timeLine'].length-1)) {
-			tt += diagram[name]['timeLine'][i][2] + '発';
+			tt += diagram[name]['timeLine'][i][2];
+			if(STATIONS[diagram[name]['timeLine'][i][0]][1] != diagram[name]['property'][4]) {
+				tt += '発';
+			} else {
+				tt += '回送';
+			}
+		} else {
+			tt += diagram[name]['timeLine'][i][1] + '頃通過';
 		}
 	}
 	tt += '\n-------';
