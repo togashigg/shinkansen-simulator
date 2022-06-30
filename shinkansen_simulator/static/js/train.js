@@ -28,8 +28,8 @@ if(ENVIRONMENT == 'heroku') {
 	CACHE_PATH = '/cache/';
 }
 var PROGRAM_TITLE = '東海道新幹線なんちゃって運行シミュレーター';
-var PROGRAM_VERSION = '0.1.4';
-var COPYRIGHT = 'Copyright (C) N.Togashi 2021';
+var PROGRAM_VERSION = '0.1.5';
+var COPYRIGHT = 'Copyright (C) N.Togashi 2021-2022';
 var THANKS = '謝辞：Heroku、GitHub、Docker、Phina.js、phina-talkbubble.js、ＪＲ東海(時刻表)、素材Library.com(日本地図)を使わせて頂きました。';
 var DIAGRAM_VERSION = '20210901版';
 var SCREEN_WIDTH  = 1920;	// 画面横サイズ(document.documentElement.clientWidth)
@@ -187,7 +187,7 @@ phina.define('MainScene', {
 				text: COPYRIGHT + '  ' + THANKS,
 				x: g_grids.span(PANEL_NUM_X/2) + 80,
 				y: g_grids.span(PANEL_NUM_Y) + 16,
-				fontSize: 24,
+				fontSize: 23,
 			}).addChildTo(back_panel);
 			// タイトル表示
 			this.title = Label({
@@ -1183,7 +1183,7 @@ function getCurrentDate(start, update) {
 	if(g_demo == 1) {
 		if(start == 1) {
 			cDate.setHours(5);
-			cDate.setMinutes(53);
+			cDate.setMinutes(49);
 		} else {
 			var diff = cDate.getTime() - g_real_date.getTime();
 			cDate.setTime(g_current_date.getTime());
@@ -1572,7 +1572,8 @@ function get_station_taimetable(id, up_down) {
 	for(let key in diagram) {
 		if(key == 'property') continue;
 		for(let i=0; i<(diagram[key]['timeLine'].length-1); i++) {
-			if(diagram[key]['timeLine'][i][0] == id) {
+			if(diagram[key]['timeLine'][i][0] == id
+			&& diagram[key]['timeLine'][i][3] == 0) {
 				tt_hm[diagram[key]['timeLine'][i][2]] = [diagram[key]['timeLine'][i][1], key];
 			}
 		}
