@@ -391,12 +391,11 @@ class Timetable:
         with open(remarks_file, 'r') as rfh:
             rfh_csv = csv.reader(rfh)
             for rec in rfh_csv:
+                rec = [r.strip() for r in rec]
                 if rec[0] == '期間':
                     continue
                 remarks_csv.append(rec)
         for rec in remarks_csv:
-            for i in range(len(rec)):
-                rec[i] = rec[i].strip()
             train = rec[0]+'号'
             if train in remarks:
                 # msg = '列車が二重に定義されています。マージして下さい。' + rec[0]
@@ -408,7 +407,7 @@ class Timetable:
                     remarks[train] = 2
                 else:
                     remarks[train] += 1
-                train = train + '.' + str(remarks[train])
+                train += '.' + str(remarks[train])
             remarks[train] = {'updown': rec[1], '事項': '', '運転日': [], '運休日': []}
             if rec[2] == '◆':
                 if remarks[train]['事項'] != '':
@@ -424,10 +423,6 @@ class Timetable:
                 if remarks[train]['事項'] != '':
                     remarks[train]['事項'] += '\n'
                 remarks[train]['事項'] += rec[2] + rec[3]
-
-        for train in list(remarks.keys()):
-            if type(remarks[train]) != dict:
-                del remarks[train]
 
         print('INFO:時刻表の特記事項を読み込み終了', file=sys.stderr)
         logger.info('remarks keys: ' + str(sorted(list(remarks.keys()))))
@@ -562,6 +557,8 @@ class Timetable:
         trains_append = []
         for train in remarks.keys():
             if type(remarks[train]) != dict:
+                if train in trains:
+                    del trains[train]
                 continue
             if train not in trains:
                 trains[train] = remarks[train]['updown']
