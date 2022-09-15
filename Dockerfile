@@ -1,11 +1,11 @@
 # Dockerfile for 東海道新幹線なんちゃって運行シミュレーター
-# Copyright (C) N.Togashi 2021
+# Copyright (C) N.Togashi 2021-2022
 # build: docker build -t shinkansen-simulator:latest .
 # run: docker run -d --name shinkansen-simulator -p 80:8080 \
-#             -v ~/timetable/cache:/app/shinkansen_simulator/timetable/cache \
-#             -v ~/timetable/log:/app/shinkansen_simulator/timetable/log \
-#             -v ~/timetable/output:/app/shinkansen_simulator/timetable/output \
-#             -v ~/timetable/remarks:/app/shinkansen_simulator/timetable/remarks \
+#             --mount type=bind,src=${HOME}/timetable/cache,dst=/app/shinkansen_simulator/timetable/cache \
+#             --mount type=bind,src=${HOME}/timetable/log,dst=/app/shinkansen_simulator/timetable/log \
+#             --mount type=bind,src=${HOME}/timetable/output,dst=/app/shinkansen_simulator/timetable/output \
+#             --mount type=bind,src=${HOME}/timetable/remarks,dst=/app/shinkansen_simulator/timetable/remarks \
 #             shinkansen-simulator
 # timetable: docker exec shinkansen-simulator /app/shinkansen_simulator/timetable/get.sh
 # base image
