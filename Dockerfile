@@ -9,7 +9,7 @@
 #             shinkansen-simulator
 # timetable: docker exec shinkansen-simulator /app/shinkansen_simulator/timetable/get.sh
 # base image
-FROM   ubuntu:18.04
+FROM   ubuntu:22.04
 MAINTAINER togashigg <KGG03575@nifty.com>
 RUN    apt update && apt -y upgrade \
     && apt clean
