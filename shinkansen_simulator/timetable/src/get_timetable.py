@@ -610,9 +610,9 @@ class Timetable:
                 continue
             train_json = json.loads(trains_timetable[train])
 
+            # or train_json['suspensionInfoIsEnabled'] == True \ 
             if train_json == {} \
             or 'suspensionInfoIsEnabled' not in train_json \
-            or train_json['suspensionInfoIsEnabled'] == True \
             or 'trainInfo' not in train_json \
             or 'trains' not in train_json['trainInfo'] \
             or type(train_json['trainInfo']['trains']) is not list \
