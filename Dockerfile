@@ -55,7 +55,7 @@ RUN    pip3 install -r requirements.txt
 # RUN    pyppeteer-install
 # アプリケーションをインストール
 ADD    . /app/
-# Herokuと同様の構成変更
+# アプリの構成変更
 RUN    mkdir /app/static \
     && cp -pr /app/shinkansen_simulator/static /app/
 # Djangoを常駐化

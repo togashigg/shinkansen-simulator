@@ -14,7 +14,8 @@ MAINTAINER togashigg <KGG03575@nifty.com>
 RUN    apt update && apt -y upgrade \
     && apt clean
 # タイムゾーン設定
-RUN    apt install -y tzdata \
+RUN    apt update \
+    && apt install -y tzdata \
     && apt clean
 ENV    TZ Asia/Tokyo
 # 時刻同期
@@ -59,7 +60,7 @@ RUN    pip3 install -r requirements.txt
 #              /root/.local/share/pyppeteer/local-chromium/588429/chrome-linux/chrome
 # アプリケーションをインストール
 ADD    . /app/
-# Herokuと同様の構成変更
+# アプリの構成変更
 RUN    mkdir /app/static \
     && cp -pr /app/shinkansen_simulator/static /app/
 # Djangoを常駐化

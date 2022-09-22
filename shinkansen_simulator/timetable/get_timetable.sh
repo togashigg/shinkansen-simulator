@@ -5,12 +5,6 @@
 #   machine github.com
 #     login ＜githubユーザID＞
 #     password ＜githubユーザIDのAPI Key＞
-#   machine api.heroku.com
-#     login ＜herokuユーザID＞
-#     password ＜herokuユーザIDのAPI Key＞
-#   machine git.heroku.com
-#     login ＜herokuユーザID＞
-#     password ＜herokuユーザIDのAPI Key＞
 
 # 定数
 USER_HOME=${HOME}/
@@ -20,7 +14,6 @@ GITHUB_CACHE=${USER_HOME}github/shinkansen-simulator/cache/
 TIMETABLES_JSON=timetables.json
 BACKUP_DIR=${USER_HOME}backup/
 BACKUP_FILE=${BACKUP_DIR}timetable_data_`date "+%Y%m%d"`.tgz
-HEROKU_PUSH=1
 
 # 時刻表を取得する
 function exec_func() {
@@ -83,9 +76,6 @@ function diff_func() {
             git add $TIMETABLES_JSON
             git commit -m "update $TIMETABLES_JSON by get_timetable.sh"
             git push
-            if [ $HEROKU_PUSH -eq 1 ]; then
-                git push heroku --force
-            fi
         fi
     fi
     sleep 5

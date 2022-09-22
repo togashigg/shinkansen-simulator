@@ -18,9 +18,9 @@
 phina.globalize();
 
 // 定数
-var ENVIRONMENT = 'heroku';
+var ENVIRONMENT = 'django';
 // var ENVIRONMENT = 'VSC';
-if(ENVIRONMENT == 'heroku') {
+if(ENVIRONMENT == 'django') {
 	STATIC_PATH = '/static/';
 	CACHE_PATH = '/cache/';
 } else {
@@ -28,9 +28,9 @@ if(ENVIRONMENT == 'heroku') {
 	CACHE_PATH = '/cache/';
 }
 var PROGRAM_TITLE = '東海道新幹線なんちゃって運行シミュレーター';
-var PROGRAM_VERSION = '0.1.5';
+var PROGRAM_VERSION = '0.1.6';
 var COPYRIGHT = 'Copyright (C) N.Togashi 2021-2022';
-var THANKS = '謝辞：Heroku、GitHub、Docker、Phina.js、phina-talkbubble.js、ＪＲ東海(時刻表)、素材Library.com(日本地図)を使わせて頂きました。';
+var THANKS = '謝辞：Render、GitHub、Docker、Phina.js、phina-talkbubble.js、ＪＲ東海(時刻表)、素材Library.com(日本地図)を使わせて頂きました。';
 var DIAGRAM_VERSION = '20210901版';
 var SCREEN_WIDTH  = 1920;	// 画面横サイズ(document.documentElement.clientWidth)
 var SCREEN_HEIGHT = 992;	// 画面縦サイズ(document.documentElement.clientHeight)
