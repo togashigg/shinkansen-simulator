@@ -82,10 +82,10 @@
   5. Dockerコンテナを起動する。
      ```
      $ docker run -d --name shinkansen-simulator -p 80:8080 \
-              -v ~/timetable/cache:/app/shinkansen_simulator/timetable/cache \
-              -v ~/timetable/log:/app/shinkansen_simulator/timetable/log \
-              -v ~/timetable/output:/app/shinkansen_simulator/timetable/output \
-              -v ~/timetable/remarks:/app/shinkansen_simulator/timetable/remarks \
+              --mount type=bind,src=${HOME}/timetable/cache,dst=/app/shinkansen_simulator/timetable/cache \
+              --mount type=bind,src=${HOME}/timetable/log,dst=/app/shinkansen_simulator/timetable/log \
+              --mount type=bind,src=${HOME}/timetable/output,dst=/app/shinkansen_simulator/timetable/output \
+              --mount type=bind,src=${HOME}/timetable/remarks,dst=/app/shinkansen_simulator/timetable/remarks \
               shinkansen-simulator
      ```
   8. ブラウザでDockerコンテナのURLを開く。
@@ -107,12 +107,12 @@
      最新の時刻表から記事ファイルを作成して、永続化用ディレクトリの"remarks"ディレクトリに
      格納する。
 
-     ファイル名は以下の通りとする。
+     ファイル名は重複を避けるために以下の規則で運用する。
      ```
-       時刻表_YYMMDD_MMDD_記事.csv
+       YYMMDD_yymmdd_remarks.csv
        
          ※YYMMDD：時刻表の開始日を西暦年の下2桁と月日を指定する。例：211001
-         ※MMDD　：時刻表の終了日を月日で指定する。例：1031
+         ※yymmdd：時刻表の終了日を西暦年の下2桁と月日で指定する。例：211031
      ```
 
   2. 以下のコマンドを実行してＪＲ東海HPより時刻表データを取得する。
@@ -122,8 +122,8 @@
      
        ※＜時刻表開始日＞：時刻表の開始日をYYYYMMDDの８桁の数字で指定する。例：20211001
        ※＜時刻表終了日＞：時刻表の終了日をYYYYMMDDの８桁の数字で指定する。例：20211031
-       ※時刻表開始日および時刻表終了日を省略した場合は当月の1日と月末日が指定されたものとする。
-       ※実行時間は、初回および各月の1日は約4時間、その他は約20分～40分程度です。
+       ※時刻表開始日および時刻表終了日を省略した場合は実行当日を含む記事ファイルを参照する。
+       ※実行時間は、初回および時刻表開始日は約4時間、その他は約20分～40分程度です。
      ```
 
 ### Renderでの構築手順（作成者メモ）
@@ -142,7 +142,7 @@
 
 #### 新規のアプリを作成する
 
-  1. RenderにログインしてDashboardのサービス一覧画面で\[New +\] - \[Web Service\]ボタンをクリックする。
+  1. RenderにログインしてDashboardのサービス一覧画面で\[New +\] - \[Web Service\]を選択する。
 
      \[Create a new Web Service\]画面が表示される。
 
