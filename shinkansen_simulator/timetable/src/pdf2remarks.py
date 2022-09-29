@@ -14,11 +14,12 @@
 #   5. 記事CSVの動作確認を行う
 #        コマンド：python3 src/get_timetable.py -v -r ./remarks/記事CSVファイル
 # 動作環境：
-#   sudo pip3 install PyPDF2
-#   sudo pip3 install pdfminer.six
-#   sudo pip3 install tabula
-#   sudo apt install qpdf
-#   sudo apt install openjdk-11-jre
+#   Ubuntu 18.04の場合：
+#     sudo apt install qpdf openjdk-11-jre
+#     sudo pip3 install PyPDF2 pdfminer.six tabula
+#   Ubuntu 22.04の場合：
+#     sudo apt install qpdf openjdk-11-jre
+#     sudo pip3 install PyPDF2 pdfminer.six tabula-py pycryptodome
 
 import os
 import sys
@@ -26,6 +27,7 @@ import csv
 import re
 from datetime import datetime
 from PyPDF2 import PdfFileReader, PdfFileWriter
+from Crypto.Cipher import AES
 import io
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import TextConverter
@@ -51,7 +53,7 @@ def my_pdf2decrypt(input_pdf):
                 for i in range(pgnum):
                     output.addPage(pdf.getPage(i))
                 output.write(output_pdf) 
-                output.close()
+                # output.close()
                 print(get_current_time() + ' decrypted pdf, ' + input_pdf, file=sys.stderr)
             except NotImplementedError:
                 print(get_current_time() + ' start decrypting pdf by qpdf... from ' + input_pdf, file=sys.stderr)
@@ -130,7 +132,12 @@ def my_pdf2data(my_pdf, pages):
         print(str(pgcnt) + '...', file=sys.stderr, end='')
         csv_data.append([])
         # lattice=Trueでテーブルの軸線でセルを判定
-        dfs = tabula.read_pdf(my_pdf, lattice=True, pages=str(page))
+        tabula_ver = [int(c) for c in tabula.__version__.split('.')]
+        if tabula_ver[0] > 2 \
+        or tabula_ver[0] == 2 and tabula_ver[1] >= 5:
+            dfs = tabula.read_pdf(my_pdf, lattice=True, pandas_options={'header': None}, pages=page)
+        else:
+            dfs = tabula.read_pdf(my_pdf, lattice=True, pages=str(page))
 
         # PDFの表をちゃんと取得できているか確認
         df = dfs[0]
@@ -213,15 +220,21 @@ def my_pdf2txt(my_pdf, pages):
 def my_data2remarks(csv_data, span, output_csv):
     print(get_current_time() + ' my_data2remarks() start.', file=sys.stderr)
     train_data = []
+    tabula_ver = [int(c) for c in tabula.__version__.split('.')]
     for page in csv_data:
+        if page[0][0][0:4] == '下 り ' or page[0][0][0:4] == '上 り ':
+            del page[0]
         for i in range(1, len(page[0])):
-            train = page[1][i]+page[2][i]
-            train_data.append([train, page[0][i]])
-            for j in range(3, 9):
+            # print('page[0][i]='+page[0][i]+'page[1][i]='+page[1][i], file=sys.stderr)
+            if page[1][i] == '':
+                continue
+            train = [page[1][i]+page[2][i], page[0][i]]
+            for j in range(3, len(page)):
                 if page[j][i] != '':
-                    train_data[-1].extend(page[j][i].split('\r'))
-            train_data[-1].append(page[9][i])
+                    train.extend(page[j][i].split())
+            train_data.append(train)
             # print(str(train_data[-1]), file=sys.stderr)
+    # print(str(train_data), file=sys.stderr)
 
     with open(output_csv, 'w') as f_csv:
         h_csv = csv.writer(f_csv)
@@ -229,6 +242,7 @@ def my_data2remarks(csv_data, span, output_csv):
         for train in train_data:
             if train[1] != '':
                 updown = 'down'
+                # print('train[0]='+train[0], file=sys.stderr)
                 if int(train[0][3:]) % 2 == 0:
                     updown = 'up'
                 h_csv.writerow([train[0], updown, train[1], ''])
