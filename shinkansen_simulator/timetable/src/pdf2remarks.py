@@ -16,7 +16,7 @@
 # 動作環境：
 #   Ubuntu 18.04の場合：
 #     sudo apt install qpdf openjdk-11-jre
-#     sudo pip3 install PyPDF2 pdfminer.six tabula
+#     sudo pip3 install PyPDF2==1.26.0 pdfminer.six==20211012 tabula-py==2.3.0
 #   Ubuntu 22.04の場合：
 #     sudo apt install qpdf openjdk-11-jre
 #     sudo pip3 install PyPDF2 pdfminer.six tabula-py pycryptodome
@@ -132,12 +132,7 @@ def my_pdf2data(my_pdf, pages):
         print(str(pgcnt) + '...', file=sys.stderr, end='')
         csv_data.append([])
         # lattice=Trueでテーブルの軸線でセルを判定
-        tabula_ver = [int(c) for c in tabula.__version__.split('.')]
-        if tabula_ver[0] > 2 \
-        or tabula_ver[0] == 2 and tabula_ver[1] >= 5:
-            dfs = tabula.read_pdf(my_pdf, lattice=True, pandas_options={'header': None}, pages=page)
-        else:
-            dfs = tabula.read_pdf(my_pdf, lattice=True, pages=str(page))
+        dfs = tabula.read_pdf(my_pdf, lattice=True, pandas_options={'header': None}, pages=page)
 
         # PDFの表をちゃんと取得できているか確認
         df = dfs[0]
@@ -220,7 +215,6 @@ def my_pdf2txt(my_pdf, pages):
 def my_data2remarks(csv_data, span, output_csv):
     print(get_current_time() + ' my_data2remarks() start.', file=sys.stderr)
     train_data = []
-    tabula_ver = [int(c) for c in tabula.__version__.split('.')]
     for page in csv_data:
         if page[0][0][0:4] == '下 り ' or page[0][0][0:4] == '上 り ':
             del page[0]
