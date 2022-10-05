@@ -179,11 +179,11 @@
 
      \[Build Command\]：
 
-       デフォルトで表示される値\[pip install -r requirements.txt\]のままとする。
+       \[pip3 install -r requirements.txt\]を設定する。
 
      \[Start Command\]：
 
-       \[python manage.py runserver 0.0.0.0:10000\]を設定する。
+       \[python3 manage.py runserver 0.0.0.0:$PORT\]を設定する。
 
      \[Plans\]：
 
