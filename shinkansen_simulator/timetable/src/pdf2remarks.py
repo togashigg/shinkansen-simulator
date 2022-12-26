@@ -262,7 +262,10 @@ def my_get_timetable_span(txt_data):
     month = datetime.now().month
     start_year = str(year)
     end_year = start_year
-    if end_month < start_month:
+    if start_month < ('0'+str(month))[-2:]:
+        start_year = str(year+1)
+        end_year = str(year+1)
+    elif end_month < start_month:
         if end_month >= ('0'+str(month))[-2:]:
             start_year = str(year-1)
         else:
