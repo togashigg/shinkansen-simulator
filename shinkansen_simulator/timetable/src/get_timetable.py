@@ -333,7 +333,7 @@ class Timetable:
             or datetime.fromtimestamp(os.path.getmtime(file_name)).strftime('%Y%m%d') < self.__cleared_date:
                 if train in remarks:
                     if '事項' in remarks[train]:
-                        if remarks[train]['事項'][0] == '◆':
+                        if '◆' in remarks[train]['事項'][0]:
                             if '運転日' in remarks[train] and len(remarks[train]['運転日']) > 0:
                                 if self.today not in remarks[train]['運転日']:
                                     print(' 運転日以外', file=sys.stderr)
@@ -409,7 +409,7 @@ class Timetable:
                     remarks[train] += 1
                 train += '.' + str(remarks[train])
             remarks[train] = {'updown': rec[1], '事項': '', '運転日': [], '運休日': []}
-            if rec[2] == '◆':
+            if '◆' in rec[2]:
                 if remarks[train]['事項'] != '':
                     # 現在は許されない：行先が異なる同一列車は解釈不能
                     remarks[train]['事項'] = rec[2] + rec[3] + '\n' + remarks[train]['事項']
@@ -419,7 +419,7 @@ class Timetable:
                 rem_result = self.interpret_remark(train, rem, self.start, self.end, self.months)
                 remarks[train]['運転日'] = rem_result['運転日']
                 remarks[train]['運休日'] = rem_result['運休日']
-            elif rec[2] == '☆':
+            elif '☆' in rec[2]:
                 if remarks[train]['事項'] != '':
                     remarks[train]['事項'] += '\n'
                 remarks[train]['事項'] += rec[2] + rec[3]
@@ -443,6 +443,7 @@ class Timetable:
         rem_year = start[:4]
         rem_month = start[4:6]
         rem = rem.replace('[', '').replace(']', '')
+        rem = rem.replace('　N700S車両で運転', '')
         rems = rem.split('・但し、')
         if len(rems) > 1:
             rem = rems[1]
