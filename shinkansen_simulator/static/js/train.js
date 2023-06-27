@@ -21,8 +21,8 @@ phina.globalize();
 var ENVIRONMENT = 'django';
 // var ENVIRONMENT = 'VSC';
 if(ENVIRONMENT == 'django') {
-	STATIC_PATH = '/static/';
-	CACHE_PATH = '/cache/';
+	STATIC_PATH = 'static/';
+	CACHE_PATH = 'cache/';
 } else {
 	STATIC_PATH = '/shinkansen_simulator/static/'
 	CACHE_PATH = '/cache/';
