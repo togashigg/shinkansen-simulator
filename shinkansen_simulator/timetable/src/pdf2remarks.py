@@ -26,7 +26,7 @@ import sys
 import csv
 import re
 from datetime import datetime
-from PyPDF2 import PdfFileReader, PdfFileWriter
+from PyPDF2 import PdfReader, PdfWriter
 from Crypto.Cipher import AES
 import io
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
@@ -42,16 +42,16 @@ def my_pdf2decrypt(input_pdf):
     output_pdf = input_pdf
     pgnum = None
     with open(input_pdf, 'rb') as f_pdf:
-        pdf = PdfFileReader(f_pdf)
-        if pdf.isEncrypted:
+        pdf = PdfReader(f_pdf)
+        if pdf.is_encrypted:
             output_pdf = input_pdf[:-4] + '_decrypted.pdf'
             password = ''
             try:
                 pdf.decrypt(password)
-                output = PdfFileWriter()
-                pgnum = pdf.getNumPages()
+                output = PdfWriter()
+                pgnum = len(pdf.pages)
                 for i in range(pgnum):
-                    output.addPage(pdf.getPage(i))
+                    output.add_page(pdf.pages[i])
                 output.write(output_pdf) 
                 # output.close()
                 print(get_current_time() + ' decrypted pdf, ' + input_pdf, file=sys.stderr)
@@ -63,12 +63,12 @@ def my_pdf2decrypt(input_pdf):
                     raise Exception('ERR: error in decrypt by qpdf.')
                 print(get_current_time() + ' ended decrypting pdf by qpdf, to ' + output_pdf, file=sys.stderr)
         else:
-            pgnum = pdf.getNumPages()
+            pgnum = len(pdf.pages)
 
     if pgnum is None and output_pdf != input_pdf:
         with open(output_pdf, 'rb') as f_pdf:
-            pdf = PdfFileReader(f_pdf)
-            pgnum = pdf.getNumPages()
+            pdf = PdfReader(f_pdf)
+            pgnum = len(pdf.pages)
     print('page number = ' + str(pgnum), file=sys.stderr)
 
     print(get_current_time() + ' my_pdf2decrypt() ended.', file=sys.stderr)
@@ -81,8 +81,8 @@ def my_pdf_split(input_pdf):
     file_name_list = []
     f2 = None
     with open(input_pdf, 'rb') as f1:
-        input = PdfFileReader(f1)
-        if input.isEncrypted:
+        input = PdfReader(f1)
+        if input.is_encrypted:
             password = ''
             try:
                 input.decrypt(password)
@@ -91,12 +91,12 @@ def my_pdf_split(input_pdf):
                 command = f"qpdf --password='{password}' --decrypt {input_pdf} {decrypted_pdf};"
                 os.system(command)
                 f2 = open(decrypted_pdf, 'rb')
-                input = PdfFileReader(f2)
-        pgnum = input.getNumPages()
+                input = PdfReader(f2)
+        pgnum = len(input.pages)
         for i in range(pgnum):
             file_name = input_pdf[:-4] + '_p' + str(i+1) + ".pdf"
-            output = PdfFileWriter()
-            output.addPage(input.getPage(i))
+            output = PdfWriter()
+            output.add_page(input.pages[i])
             outputfile = open(file_name, 'wb')
             output.write(outputfile) 
             outputfile.close()
