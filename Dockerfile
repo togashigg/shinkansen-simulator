@@ -1,5 +1,5 @@
 # Dockerfile for 東海道新幹線なんちゃって運行シミュレーター
-# Copyright (C) N.Togashi 2021-2022
+# Copyright (C) N.Togashi 2021-2023
 # build: docker build -t shinkansen-simulator:latest .
 # run: docker run -d --name shinkansen-simulator -p 80:8080 \
 #             --mount type=bind,src=${HOME}/timetable/cache,dst=/app/shinkansen_simulator/timetable/cache \
@@ -9,7 +9,6 @@
 #             shinkansen-simulator
 # timetable: docker exec shinkansen-simulator /app/shinkansen_simulator/timetable/get.sh
 # base image
-# FROM   ubuntu:22.04
 FROM   python:3.10-slim
 MAINTAINER togashigg <KGG03575@nifty.com>
 RUN    apt-get update && apt-get -y upgrade \
