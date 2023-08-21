@@ -57,5 +57,5 @@ ADD    . /app/
 RUN    mkdir /app/static \
     && cp -pr /app/shinkansen_simulator/static /app/
 # Djangoを常駐化
-ENTRYPOINT python3 manage.py runserver 0.0.0.0:8080
+ENTRYPOINT python3 manage.py runserver 0.0.0.0:8080 --insecure
 EXPOSE 8080
