@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # get_timetable.py: 東海道新幹線の時刻表HTMLを取得して時刻表を作成する
-# Copyright (C) N.Togashi 2021-2022
+# Copyright (C) N.Togashi 2021-2023
 # JR各駅の時刻表：https://railway.jr-central.co.jp/time-schedule/search/index.html
 # JR個別列車案内：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti05.html
 # JR個別列車案内(こだま)：https://traininfo.jr-central.co.jp/shinkansen/pc/ja/ti07.html?traintype=2&train=723
@@ -456,21 +456,7 @@ class Timetable:
                 if int(new_month, base=10) < int(rem_month, base=10):
                     rem_year = str(int(rem_year)+1)
                 rem_month = new_month
-                rem_array = re.split('[・、]', match.group(2))
-                for dt in rem_array:
-                    dt = dt.rstrip('日は')
-                    m_index = dt.find('月')
-                    if m_index >= 0:
-                        new_month = ('0'+dt[:m_index])[-2:]
-                        if int(new_month, base=10) < int(rem_month, base=10):
-                            rem_year = str(int(rem_year)+1)
-                        rem_month = new_month
-                        dt = dt[m_index+1:]
-                    dt_array = dt.split('～')
-                    if len(dt_array) == 1:
-                        dates.append(rem_year+rem_month+('0'+str(dt))[-2:])
-                    else:
-                        dates.extend([rem_year+rem_month+('0'+str(d))[-2:] for d in range(int(dt_array[0]), int(dt_array[1])+1)])
+                dates.extend(self.rem_to_dates(rem_year, rem_month, match.group(2)))
             if len(dates) > 0:
                 result['運転日'] = sorted(list(set(dates)))
         rem = rems[0]
@@ -487,21 +473,7 @@ class Timetable:
                     if int(new_month, base=10) < int(rem_month, base=10):
                         rem_year = str(int(rem_year)+1)
                     rem_month = new_month
-                    rem_array = re.split('[・、]', match.group(2))
-                    for dt in rem_array:
-                        dt = dt.rstrip('日は')
-                        m_index = dt.find('月')
-                        if m_index >= 0:
-                            new_month = ('0'+dt[:m_index])[-2:]
-                            if int(new_month, base=10) < int(rem_month, base=10):
-                                rem_year = str(int(rem_year)+1)
-                            rem_month = new_month
-                            dt = dt[m_index+1:]
-                        dt_array = dt.split('～')
-                        if len(dt_array) == 1:
-                            dates.append(rem_year+rem_month+('0'+str(dt))[-2:])
-                        else:
-                            dates.extend([rem_year+rem_month+('0'+str(d))[-2:] for d in range(int(dt_array[0]), int(dt_array[1])+1)])
+                    dates.extend(self.rem_to_dates(rem_year, rem_month, match.group(2)))
                 else:
                     if rem1 == '土曜' or rem1 == '土曜運休' or rem1 == '土曜・休日運休':    # 土曜日
                         for yyyymm in months:
@@ -545,6 +517,67 @@ class Timetable:
         # 復帰
         logger.info('interpret_remark() ended, result=' + str(result))
         return result
+
+    def rem_to_dates(self, year, month, rem):
+        """
+        特記事項の日付指定を配列の全日付に変換する。
+        :param year: str型、4桁の開始年
+        :param month: str型、2桁の開始月
+        :param rem: str型、特記事項の日付指定。但し、最初の月指定は無い。
+        :return: array型、全日付をstr型8文字の年月日の配列で返却する。
+        """
+        logger = getLogger(__name__)
+        logger.debug('rem_to_dates() start, year='+year+', month='+month+', rem='+rem)
+        dates = []
+        rem_year = year
+        rem_month = month
+        rem_array = re.split('[・、]', rem)
+        for dt in rem_array:
+            dt = dt.rstrip('日は')
+            dt_array = dt.split('～')
+            m_index = dt_array[0].find('月')
+            if m_index >= 0:
+                new_month = ('0'+dt_array[0][:m_index])[-2:]
+                if int(new_month, base=10) < int(rem_month, base=10):
+                    rem_year = str(int(rem_year)+1)
+                rem_month = new_month
+                dt_array[0] = dt_array[0][m_index+1:]
+            if len(dt_array) == 1:
+                dates.append(rem_year+rem_month+('0'+str(dt_array[0]))[-2:])
+            else:
+                dt_array[0] = dt_array[0].rstrip('日')
+                m2_index = dt_array[1].find('月')
+                if m2_index < 0:
+                    dates.extend([rem_year+rem_month+('0'+str(d))[-2:] \
+                        for d in range(int(dt_array[0]), int(dt_array[1])+1)])
+                else:
+                    dt1 = int(dt_array[0], base=10)
+                    dt2_year = int(rem_year)
+                    dt2_month = int(('0'+dt_array[1][:m2_index])[-2:], base=10)
+                    dt2 = int(dt_array[1][m2_index+1:], base=10)
+                    if dt2_month < int(rem_month, base=10):
+                        dt2_year += 1
+                    y = int(rem_year, base=10)
+                    m = int(rem_month, base=10)
+                    while(y!=dt2_year or m!=dt2_month):
+                        md = (datetime(y, m, 1) \
+                           + relativedelta(months=+1,day=1,days=-1)).day
+                        dates.extend([str(y)+('0'+str(m))[-2:]+('0'+str(d))[-2:] \
+                            for d in range(dt1, md+1)])
+                        dt1 = 1
+                        m += 1
+                        if m > 12:
+                            m = 1
+                            y += 1
+                    else:
+                        md = dt2
+                        dates.extend([str(y)+('0'+str(m))[-2:]+('0'+str(d))[-2:] \
+                            for d in range(dt1, md+1)])
+                        rem_year = str(y)
+                        rem_month = ('0'+str(m))[-2:]
+        # 復帰
+        logger.debug('rem_to_dates() ended, dates='+str(dates))
+        return dates
 
     def append_trains_from_remarks(self, trains, remarks):
         """
