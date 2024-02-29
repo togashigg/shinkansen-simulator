@@ -88,7 +88,7 @@ class Timetable:
         self.start_date = datetime.strptime(self.start, '%Y%m%d')
         self.end_date = datetime.strptime(self.end, '%Y%m%d')
         self.months = []
-        dt = self.start_date
+        dt = self.start_date.replace(day=1)
         while dt < self.end_date:
             self.months.append(str(dt.year) + ('0'+str(dt.month))[-2:])
             dt = dt + relativedelta(months=1)
