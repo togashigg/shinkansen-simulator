@@ -387,6 +387,8 @@ class Timetable:
         logger.info('get_remarks_file() start.')
         print('INFO:時刻表の特記事項を読み込み開始', file=sys.stderr)
         remarks = {}
+        if remarks_file is None:
+            return remarks
         remarks_csv = []
         with open(remarks_file, 'r') as rfh:
             rfh_csv = csv.reader(rfh)
