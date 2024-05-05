@@ -445,7 +445,7 @@ class Timetable:
         rem_year = start[:4]
         rem_month = start[4:6]
         rem = rem.replace('[', '').replace(']', '')
-        rem = rem.replace('　N700S車両で運転', '')
+        rem = rem.split('　')[0]
         rems = rem.split('・但し、')
         if len(rems) > 1:
             rem = rems[1]
