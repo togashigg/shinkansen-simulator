@@ -291,6 +291,11 @@ class Timetable:
                                 if trains[train_1][1] == train[2]:
                                     train[0] = train_1
                                     logger.debug(train[0]+' -> '+train_1)
+                                else:
+                                    if train_2 in trains:
+                                        if trains[train_2][1] == train[2]:
+                                            train[0] = train_2
+                                            logger.debug(train[0]+' -> '+train_2)
                             elif train_2 in trains:
                                 if trains[train_2][1] == train[2]:
                                     train[0] = train_2
