@@ -268,47 +268,46 @@ class Timetable:
                     hour = ('0' + time_tr.find('font').text.strip())[-2:]
                 else:
                     td_trains = time_tr.find_all(class_=re.compile('V'))
-                    # td_trains = soup.find_all(class_=re.compile('V'))
                     for td_train in td_trains:
                         train = td_train.find('table').find_all('td')
                         train = [t.text for t in train]
-                        if train[0][:3] in TRAIN_TYPES:
-                            train_1 = train[0][:-1] + '.1号'
-                            train_2 = train[0][:-1] + '.2号'
-                            if train[0] in trains:
-                                if trains[train[0]][1] == train[2]:
-                                    pass
-                                else:
-                                    trains[train_1] = trains.pop(train[0])
-                                    get_file = os.path.join(self.cache_dir, st_way[1]+'_'+train[0]+'.json')
-                                    if os.path.exists(get_file):
-                                        get_file_1 = os.path.join(self.cache_dir, st_way[1]+'_'+train_1+'.json')
-                                        os.rename(get_file, get_file_1)
-                                        logger.info('rename file from '+get_file+' to '+get_file_1)
-                                    logger.debug(train[0]+' -> '+train_2)
-                                    train[0] = train_2
-                            elif train_1 in trains:
-                                if trains[train_1][1] == train[2]:
-                                    train[0] = train_1
-                                    logger.debug(train[0]+' -> '+train_1)
-                                else:
-                                    if train_2 in trains:
-                                        if trains[train_2][1] == train[2]:
-                                            train[0] = train_2
-                                            logger.debug(train[0]+' -> '+train_2)
-                            elif train_2 in trains:
-                                if trains[train_2][1] == train[2]:
-                                    train[0] = train_2
-                                    logger.debug(train[0]+' -> '+train_2)
-                            if train[0] in trains:
-                                trains[train[0]][2].append(hour+':'+train[1]+' '+station)
-                                trains[train[0]][2] = list(sorted(set(trains[train[0]][2])))
+                        if train[0][:3] not in TRAIN_TYPES:
+                            continue
+                        train_1 = train[0][:-1] + '.1号'
+                        train_2 = train[0][:-1] + '.2号'
+                        if train[0] in trains:
+                            if trains[train[0]][1] == train[2]:
+                                pass
                             else:
-                                trains[train[0]] = [st_way[1], train[2], [hour+':'+train[1]+' '+station], []]
-                            if train[1][-1] == '◆':
-                                trains[train[0]][3].append(self.today)
-                                trains[train[0]][3] = list(sorted(set(trains[train[0]][3])))
-                            logger.debug(key + '：' + ', '.join(train))
+                                trains[train_1] = trains.pop(train[0])
+                                get_file = os.path.join(self.cache_dir, st_way[1]+'_'+train[0]+'.json')
+                                if os.path.exists(get_file):
+                                    get_file_1 = os.path.join(self.cache_dir, st_way[1]+'_'+train_1+'.json')
+                                    os.rename(get_file, get_file_1)
+                                    logger.info('rename file from '+get_file+' to '+get_file_1)
+                                logger.debug(train[0]+' -> '+train_2)
+                                train[0] = train_2
+                        elif train_1 in trains:
+                            if trains[train_1][1] == train[2]:
+                                train[0] = train_1
+                                logger.debug(train[0]+' -> '+train_1)
+                            else:
+                                if train_2 in trains:
+                                    if trains[train_2][1] == train[2]:
+                                        train[0] = train_2
+                                        logger.debug(train[0]+' -> '+train_2)
+                        elif train_2 in trains:
+                            if trains[train_2][1] == train[2]:
+                                train[0] = train_2
+                                logger.debug(train[0]+' -> '+train_2)
+                        if train[0] in trains:
+                            trains[train[0]][2].append(hour+':'+train[1]+' '+station)
+                            trains[train[0]][2] = list(sorted(set(trains[train[0]][2])))
+                        else:
+                            trains[train[0]] = [st_way[1], train[2], [hour+':'+train[1]+' '+station], []]
+                        trains[train[0]][3].append(self.today)
+                        trains[train[0]][3] = list(sorted(set(trains[train[0]][3])))
+                        logger.debug(key + '：' + ', '.join(train))
 
         with open(file_name, 'w') as fh:
             fh.write(json.dumps(trains, ensure_ascii=False, sort_keys=True))
@@ -397,6 +396,8 @@ class Timetable:
                         logger.warning('取得したデータがJSON形式以外です。' + train + ':' + trains_timetable[train][:15])
                         del trains_timetable[train]
                         print(' 失敗', file=sys.stderr)
+                        if train_i < len(trains):
+                            time.sleep(WEBAPI_SLEEP_TIME/10)
                         continue
                 else:
                     print(' HTMLデータ取得中...', file=sys.stderr, end='')
@@ -463,8 +464,6 @@ class Timetable:
                 rem_result = self.interpret_remark(train, rem, self.start, self.end, self.months)
                 remarks[train]['運転日'] = rem_result['運転日']
                 remarks[train]['運休日'] = rem_result['運休日']
-                if '指定日' in rem_result:
-                    remarks[train]['指定日'] = rem_result['指定日']
             if '☆' in rec[2]:
                 if remarks[train]['事項'] != '':
                     remarks[train]['事項'] += '\n'
@@ -486,10 +485,6 @@ class Timetable:
         logger = getLogger(__name__)
         logger.info('interpret_remark() start, rem=' + str(rem))
         result = {'運転日': [], '運休日': []}
-        if rem == '運転日注意':
-            result['指定日'] = 1
-            logger.info('interpret_remark() passed, result=' + str(result))
-            return result
         rem_year = start[:4]
         rem_month = start[4:6]
         rem = rem.replace('[', '').replace(']', '')
@@ -763,14 +758,14 @@ class Timetable:
                 timetable['remarks'] = remarks[train]
                 if 'updown' in timetable['remarks']:
                     del timetable['remarks']['updown']
-            logger.debug('timetable["remarks"]=' + str(timetable['remarks']))
-            if  timetable['remarks']['事項'][:6] == '◆運転日注意' \
-            or (timetable['remarks']['運転日'] == [] \
-            and timetable['remarks']['運休日'] == []):
-                logger.debug('trains[' + train + ']=' + str(trains[train]))
-                if trains[train][3] != []:
+            if len(trains[train][2]) > 0:
+                if '◆' in trains[train][2][0]:
                     if timetable['remarks']['事項'] == '':
                         timetable['remarks']['事項'] = '◆運転日注意'
+            logger.debug('timetable["remarks"]=' + str(timetable['remarks']))
+            if  timetable['remarks']['事項'][:6] == '◆運転日注意':
+                logger.debug('trains[' + train + ']=' + str(trains[train]))
+                if trains[train][3] != []:
                     timetable['remarks']['運転日'] = trains[train][3]
             for st_i in range(len(stations)):
                 if stations_name[stations[st_i]['station']] not in STATIONS:
