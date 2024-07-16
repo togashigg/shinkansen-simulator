@@ -464,7 +464,7 @@ class Timetable:
                 rem_result = self.interpret_remark(train, rem, self.start, self.end, self.months)
                 remarks[train]['運転日'] = rem_result['運転日']
                 remarks[train]['運休日'] = rem_result['運休日']
-            if '☆' in rec[2]:
+            elif '☆' in rec[2]:
                 if remarks[train]['事項'] != '':
                     remarks[train]['事項'] += '\n'
                 remarks[train]['事項'] += rec[2] + rec[3]
