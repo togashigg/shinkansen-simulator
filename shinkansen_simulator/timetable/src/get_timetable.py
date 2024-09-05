@@ -50,7 +50,9 @@ DIAGRAM_ROUTE = '東海道・山陽新幹線'
 TRAIN_TYPES = {'こだま': '2', 'ひかり': '1', 'のぞみ': '6'}
 STATIONS = [
     '東京', '品川', '新横浜', '小田原', '熱海', '三島', '新富士','静岡', '掛川',
-    '浜松', '豊橋', '三河安城', '名古屋', '岐阜羽島', '米原', '京都', '新大阪'
+    '浜松', '豊橋', '三河安城', '名古屋', '岐阜羽島', '米原', '京都', '新大阪',
+    '新神戸', '西明石', '姫路', '相生', '岡山', '新倉敷', '福山', '新尾道', '三原',
+    '東広島', '広島', '新岩国', '徳山', '新山口', '厚狭', '新下関', '小倉', '博多'
 ]
 STATIONS_ID = {i:STATIONS[i] for i in range(len(STATIONS))}
 WEBAPI_SLEEP_TIME = 30
@@ -178,52 +180,14 @@ class Timetable:
             msg = '各駅の時刻表取得：' + station  + '  ' + str(station_i) + '/' + str(len(STATIONS))
             logger.info(msg)
             print('INFO:' + msg, file=sys.stderr)
-            station_encode = urllib.parse.quote(station, encoding='euc_jp').lower()
             # 各駅の下りの出発時刻
-            file_name = os.path.join(self.cache_dir, station + '_' + self.today + '_down.html')
-            if os.path.exists(file_name) \
-            and os.path.getsize(file_name) > 0:
-                with open(file_name, 'r') as t_h:
-                    stations_timetable[station+'_down'] = t_h.read()
-                logger.debug('used cache: ' + file_name)
-            else:
-                get_url = '%s?MODE=7&HOUR=0&DIAF=%s&DIAR=%s&DIAD=%s' \
-                            % (STATION_DIAGRAM_URL,
-                               station_encode,
-                               self.__DIAGRAM_ROUTE_ENCODE,
-                               '1')
-                logger.debug('下りURL：' + get_url)
-                content = self.http_get_content(get_url)
-                if content is not None:
-                    stations_timetable[station+'_down'] = content.decode('euc_jp')
-                    with open(file_name, 'w') as t_h:
-                        t_h.write(stations_timetable[station+'_down'])
-                        logger.debug('write cache: ' + file_name)
-                time.sleep(WEBAPI_SLEEP_TIME)
+            content = self.get_timetable_html(station, 'down')
+            if content is not None:
+                stations_timetable[station+'_down'] = content
             # 各駅の上りの出発時刻
-            if station == '東京':
-                continue
-            file_name = os.path.join(self.cache_dir, station + '_' + self.today + '_up.html')
-            if os.path.exists(file_name) \
-            and os.path.getsize(file_name) > 0:
-                with open(file_name, 'r') as t_h:
-                    stations_timetable[station+'_up'] = t_h.read()
-                    logger.debug('used cache: ' + file_name)
-            else:
-                get_url = '%s?MODE=7&HOUR=0&DIAF=%s&DIAR=%s&DIAD=%s' \
-                            % (STATION_DIAGRAM_URL,
-                               station_encode,
-                               self.__DIAGRAM_ROUTE_ENCODE,
-                               '2')
-                logger.debug('上りURL：' + get_url)
-                content = self.http_get_content(get_url)
-                if content is not None:
-                    stations_timetable[station+'_up'] = content.decode('euc_jp')
-                    with open(file_name, 'w') as t_h:
-                        t_h.write(stations_timetable[station+'_up'])
-                        logger.debug('write cache: ' + file_name)
-                if station_i < len(STATIONS):
-                    time.sleep(WEBAPI_SLEEP_TIME)
+            content = self.get_timetable_html(station, 'up')
+            if content is not None:
+                stations_timetable[station+'_up'] = content
 
         logger.info('stations_timetable keys: ' \
                 + str(sorted(list(stations_timetable.keys()))))
@@ -231,11 +195,57 @@ class Timetable:
         # 復帰
         return stations_timetable
 
+    def get_timetable_html(self, station, updown):
+        """
+        1駅の上りか下りの時刻表を取得する
+        :param station: str型、駅名、例：'東京'
+        :param updown: str型、上り/下りの区別、例：'up'=上り、'down'=下り
+        :return: bytes型、時刻表html
+        """
+        logger = getLogger(__name__)
+        logger.info('get_timetable_html() start, station=' + station + ', updown=' + updown)
+        # 初期化
+        content = None
+        if (updown == 'up' and station == STATIONS[0]) \
+        or (updown == 'down' and station == STATIONS[-1]):
+            # 上りの最終駅と下りの最終駅は取得できない
+            logger.info('get_timetable_html() ended, skiped content=None')
+            return content
+        station_encode = urllib.parse.quote(station, encoding='euc_jp').lower()
+        p_direction = '2'
+        if updown == 'down':
+            p_direction = '1'
+        # 駅の出発時刻を取得
+        file_name = os.path.join(self.cache_dir,
+                                 station + '_' + self.today + '_' + updown + '.html')
+        if os.path.exists(file_name) \
+        and os.path.getsize(file_name) > 0:
+            with open(file_name, 'r') as t_h:
+                content = t_h.read()
+                logger.debug('used cache: ' + file_name)
+        else:
+            get_url = '%s?MODE=7&HOUR=0&DIAF=%s&DIAR=%s&DIAD=%s' \
+                        % (STATION_DIAGRAM_URL,
+                           station_encode,
+                           self.__DIAGRAM_ROUTE_ENCODE,
+                           p_direction)
+            logger.debug(updown + ' URL: ' + get_url)
+            content = self.http_get_content(get_url)
+            if content is not None:
+                content = content.decode('euc_jp')
+                with open(file_name, 'w') as t_h:
+                    t_h.write(content)
+                    logger.debug('write cache: ' + file_name)
+            time.sleep(WEBAPI_SLEEP_TIME)
+        # 復帰
+        logger.info('get_timetable_html() ended, (content is None):' + str(content is None))
+        return content
+
     def get_trains_list(self, stations_timetable):
         """
         駅毎の時刻表HTMLから列車一覧を作成する。
         :param stations_timetable: dict型、駅毎の時刻表HTML
-        :return: dict型、列車一覧、例：{'こだま723号': 'down', ... }
+        :return: dict型、列車一覧、例：{'こだま723号': ['down', '東京', '新大阪', [駅発車時刻, ...], [運転日, ...]], ... }
         """
         logger = getLogger(__name__)
         logger.info('get_trains_list() start.')
@@ -246,16 +256,33 @@ class Timetable:
                 trains = json.loads(fh.read())
             logger.debug('read cache: ' + file_name)
 
+        # タグの修正
         for key in stations_timetable.keys():
+            stations_timetable[key] = stations_timetable[key].replace('</TD><TR>', '</TD></TR><TR>')
+            stations_timetable[key] = stations_timetable[key].replace('</TD></TABLE>', '</TD></TR></TABLE>')
+
+        # 下りは東京から、上りは博多から順番に実行する
+        stations_down = [key for key in stations_timetable.keys() if key[-5:] == '_down']
+        stations_down = [[key, STATIONS.index(key[:-5])] for key in stations_down]
+        stations_down = sorted(stations_down, key=lambda x: x[1])
+        stations_up = [key for key in stations_timetable.keys() if key[-3:] == '_up']
+        stations_up = [[key, STATIONS.index(key[:-3])] for key in stations_up]
+        stations_up = sorted(stations_up, key=lambda x: x[1], reverse=True)
+        stations_key = [key[0] for key in stations_down]
+        stations_key.extend([key[0] for key in stations_up])
+        logger.info('stations_key='+str(stations_key))
+        # 一旦、全駅の時刻表から一日分の列車の時刻表を作成する
+        st_trains = {}
+        for key in stations_key: 
+            logger.info('key='+str(key))
             msg = '駅の時刻表から列車名取得：' + key
             logger.info(msg)
             print('INFO:' + msg, file=sys.stderr)
-            st_way = key.split('_')
-            stations_timetable[key] = stations_timetable[key].replace('</TD><TR>', '</TD></TR><TR>')
-            stations_timetable[key] = stations_timetable[key].replace('</TD></TABLE>', '</TD></TR></TABLE>')
+            station, st_way = key.split('_')
             soup = BeautifulSoup(stations_timetable[key], "lxml")
             try:
-                station = soup.find('body').find_all('table')[1].find('font').text.strip()
+                # st_nameは「〜駅」
+                st_name = soup.find('body').find_all('table')[1].find('font').text.strip()
             except:
                 key_array = key.split('_')
                 html_file = os.path.join(self.cache_dir, key_array[0] + '_' + self.today + '_' + key_array[1] + '.html')
@@ -265,53 +292,88 @@ class Timetable:
             hour = '0'
             for time_tr in time_trs:
                 if time_tr.find('font') is not None:
+                    # 時刻行
                     hour = ('0' + time_tr.find('font').text.strip())[-2:]
+                    continue
+                # 時刻内の列車一覧：発車分、列車名、行き先
+                td_trains = time_tr.find_all(class_=re.compile('V'))
+                for td_train in td_trains:
+                    train = td_train.find('table').find_all('td')
+                    train = [t.text for t in train]
+                    if train[0][:3] not in TRAIN_TYPES:
+                        # 処理対象外列車
+                        logger.debug('処理対象外: ' + train[0])
+                        continue
+                    if '（' in train[0]:	# （ハローキティ新幹線）、（500系）
+                        train[0] = train[0].split('（')[0]
+                    if train[0] in st_trains:
+                        # 駅発車時刻を追加
+                        st_trains[train[0]][3].append(hour+':'+train[1]+' '+station)
+                    else:
+                        # 列車情報を追加
+                        st_trains[train[0]] = [st_way, station, train[2], [hour+':'+train[1]+' '+station], []]
+
+        # 各列車の発車時刻のソートは不要
+        # for train in st_trains.keys():
+        #     st_trains[train][3] = list(sorted(set(st_trains[train][3])))
+
+        logger.debug('st_trains: '+str(st_trains))
+
+        # trainsとst_trainsをマージする
+        for train in st_trains.keys():
+            # trainには「.」が含まれない
+            if train in trains:
+                if trains[train][1] == '' or trains[train][2] == '':
+                    # 上書きする
+                    trains[train] = st_trains[train]
+                elif trains[train][1] == st_trains[train][1] \
+                and  trains[train][2] == st_trains[train][2]:
+                    # 何もしない
+                    pass
                 else:
-                    td_trains = time_tr.find_all(class_=re.compile('V'))
-                    for td_train in td_trains:
-                        train = td_train.find('table').find_all('td')
-                        train = [t.text for t in train]
-                        if train[0][:3] not in TRAIN_TYPES:
-                            continue
-                        train_1 = train[0][:-1] + '.1号'
-                        train_2 = train[0][:-1] + '.2号'
-                        if train[0] in trains:
-                            if trains[train[0]][1] == train[2]:
-                                pass
-                            else:
-                                trains[train_1] = trains.pop(train[0])
-                                get_file = os.path.join(self.cache_dir, st_way[1]+'_'+train[0]+'.json')
-                                if os.path.exists(get_file):
-                                    get_file_1 = os.path.join(self.cache_dir, st_way[1]+'_'+train_1+'.json')
-                                    os.rename(get_file, get_file_1)
-                                    logger.info('rename file from '+get_file+' to '+get_file_1)
-                                logger.debug(train[0]+' -> '+train_2)
-                                train[0] = train_2
-                        elif train_1 in trains:
-                            if trains[train_1][1] == train[2]:
-                                train[0] = train_1
-                                logger.debug(train[0]+' -> '+train_1)
-                            else:
-                                if train_2 in trains:
-                                    if trains[train_2][1] == train[2]:
-                                        train[0] = train_2
-                                        logger.debug(train[0]+' -> '+train_2)
-                        elif train_2 in trains:
-                            if trains[train_2][1] == train[2]:
-                                train[0] = train_2
-                                logger.debug(train[0]+' -> '+train_2)
-                        if train[0] in trains:
-                            trains[train[0]][2].append(hour+':'+train[1]+' '+station)
-                            trains[train[0]][2] = list(sorted(set(trains[train[0]][2])))
+                    # 始発駅や終着駅が異なるため、列車名を「.1」「.2」に変更する
+                    train_1 = train[:-1] + '.1号'
+                    train_2 = train[:-1] + '.2号'
+                    trains[train_1] = trains.pop(train)
+                    trains[train_2] = st_trains[train]
+                    logger.info(train+' -> '+train_1+', add '+train_2)
+                    get_file = os.path.join(self.cache_dir, st_way+'_'+train+'.json')
+                    if os.path.exists(get_file):
+                        get_file_1 = os.path.join(self.cache_dir, st_way+'_'+train_1+'.json')
+                        logger.info('rename file from '+get_file+' to '+get_file_1)
+                    train = train_2
+            else:
+                # 追い番付きの列車名を確認して追加する
+                for i in range(1, 10):
+                    train_n = train[:-1] + '.' + str(i) + '号'
+                    if train_n not in trains:
+                        if i == 1:
+                            # そのまま追加する
+                            trains[train] = st_trains[train]
+                            logger.info('add '+train)
                         else:
-                            trains[train[0]] = [st_way[1], train[2], [hour+':'+train[1]+' '+station], []]
-                        trains[train[0]][3].append(self.today)
-                        trains[train[0]][3] = list(sorted(set(trains[train[0]][3])))
-                        logger.debug(key + '：' + ', '.join(train))
+                            # 次の追い番で追加する
+                            trains[train_n] = st_trains[train]
+                            logger.info('add '+train_n+' <- '+train)
+                            train = train_n
+                        break
+                    if trains[train_n][1] == '' or trains[train_n][2] == '':
+                        logger.info('changed '+train_n+' <- '+train)
+                        trains[train_n] = st_trains[train]
+                        train = train_n
+                        break
+                    if  trains[train_n][1] == st_trains[train][1] \
+                    and trains[train_n][2] == st_trains[train][2]:
+                        logger.info('same start-terminal '+train_n)
+                        train = train_n
+                        break
+            # 運転日を追加
+            trains[train][4].append(self.today)
+            trains[train][4] = list(sorted(set(trains[train][4])))
 
         with open(file_name, 'w') as fh:
             fh.write(json.dumps(trains, ensure_ascii=False, sort_keys=True))
-            logger.debug('write cache: ' + file_name)
+            logger.info('write cache: ' + file_name)
 
         logger.info('trains keys:' + str(sorted(list(trains.keys()))))
         logger.info('get_trains_list() ended.')
@@ -321,7 +383,7 @@ class Timetable:
     def get_trains_timetable(self, trains, remarks, get_json=True):
         """
         列車一覧から列車毎の時刻表を取得する。
-        :param trains: dict型、列車一覧、例：{'こだま723号': 'down', ... }
+        :param trains: dict型、列車一覧、例：{'こだま723号': ['down', '東京', '新大阪k', [], []], ... }
         :param remarks: dict型、特記事項、例：{'こだま802号': {'updown': 'up', '事項': '土曜・休日運休', '運転日': [], '運休日': [,,,]}}
         :param get_json: bool型、True=JSON形式で取得する、False=HTML形式で取得する
         :return: dict型、列車毎の時刻表
@@ -365,6 +427,7 @@ class Timetable:
             else:
                 file_name = os.path.join(self.cache_dir, trains[train][0]+'_'+train+'.html')
             logger.debug('train cache file_name=' + file_name)
+
             if os.path.exists(file_name) \
             and os.path.getsize(file_name) > 0:
                 with open(file_name, 'r') as t_h:
@@ -441,18 +504,23 @@ class Timetable:
                     continue
                 remarks_csv.append(rec)
         for rec in remarks_csv:
-            train = rec[0]+'号'
+            train = rec[0] + '号'
             if train in remarks:
-                # msg = '列車が二重に定義されています。マージして下さい。' + rec[0]
-                # logger.warning(msg)
-                # print('WARNING:' + msg, file=sys.stderr)
                 # 列車名の後に「.1」等の追番を付加する
                 if type(remarks[train]) == dict:
-                    remarks[train + '.1'] = remarks[train]
+                    remarks[rec[0]+'.1号'] = remarks.pop(train)
                     remarks[train] = 2
+                    logger.info('rename '+train+' -> '+rec[0]+'.1号')
+                    # 時刻表のファイル名を変更する
+                    get_file = os.path.join(self.cache_dir, rec[1]+'_'+train+'.json')
+                    get_file_1 = os.path.join(self.cache_dir, rec[1]+'_'+rec[0]+'.1号.json')
+                    if os.path.exists(get_file):
+                        os.rename(get_file, get_file_1)
+                        logger.info('renamed train file '+get_file+' -> '+get_file_1)
                 else:
                     remarks[train] += 1
-                train += '.' + str(remarks[train])
+                train = rec[0] + '.' + str(remarks[train]) + '号'
+                logger.info('name '+rec[0]+'号'+' -> '+train)
             remarks[train] = {'updown': rec[1], '事項': '', '運転日': [], '運休日': []}
             if '◆' in rec[2]:
                 if remarks[train]['事項'] != '':
@@ -469,6 +537,12 @@ class Timetable:
                     remarks[train]['事項'] += '\n'
                 remarks[train]['事項'] += rec[2] + rec[3]
 
+        if logger.getEffectiveLevel() <= DEBUG:
+            file_name = os.path.join(self.cache_dir, 'remarks.json')
+            with open(file_name, 'w') as fh:
+                fh.write(json.dumps(remarks, ensure_ascii=False, sort_keys=True))
+                logger.debug('write cache: ' + file_name)
+
         print('INFO:時刻表の特記事項を読み込み終了', file=sys.stderr)
         logger.info('remarks keys: ' + str(sorted(list(remarks.keys()))))
         logger.debug('remarks: ' + str(remarks))
@@ -483,7 +557,7 @@ class Timetable:
         :return: dict型、{'運転日': [], '運休日': []}
         """
         logger = getLogger(__name__)
-        logger.info('interpret_remark() start, rem=' + str(rem))
+        logger.info('interpret_remark() start, train=' + train + ', rem=' + str(rem))
         result = {'運転日': [], '運休日': []}
         rem_year = start[:4]
         rem_month = start[4:6]
@@ -627,21 +701,34 @@ class Timetable:
     def append_trains_from_remarks(self, trains, remarks):
         """
         時刻表に特記事項がある列車を列車一覧に追加する
-        :param trains: dict型、列車一覧、例：{'こだま723号': 'down', ... }
+        :param trains: dict型、列車一覧、例：{'こだま723号': ['down', '東京', '新大阪', [], []], ... }
         :param remarks: dict型、特記事項、例：{'こだま802号': {'updown': 'up', '事項': '土曜・休日運休', '運転日': [], '運休日': [,,,]}}
         """
         logger = getLogger(__name__)
         logger.info('append_trains_from_remarks() start.')
         print('INFO:時刻表の特記事項から列車名を追加', file=sys.stderr)
         trains_append = []
-        for train in remarks.keys():
+        for train in list(remarks.keys()):
             if type(remarks[train]) != dict:
-                if train in trains:
-                    del trains[train]
                 continue
             if train not in trains:
-                trains[train] = [remarks[train]['updown'], '', [], []]
+                # 特記事項に重複する列車名があると「.1」「.2」といった追い番が付く
+                trains[train] = [remarks[train]['updown'], '', '', [], []]
                 trains_append.append(train + '(' + remarks[train]['updown'] + ')')
+                if '.' in train:
+                    train_0 = train.split('.')[0] + '号'
+                    if train_0 in trains:
+                        # 列車名を変更する
+                        trains[train] = trains.pop(train_0)
+                        trains_append.append(train + '(<-' + train_0 + ')')
+
+        # trainsに変更があればキャッシュも更新する
+        if len(trains_append) > 0:
+            file_name = os.path.join(self.cache_dir, 'trains.json')
+            if os.path.exists(file_name):
+                with open(file_name, 'w') as fh:
+                    fh.write(json.dumps(trains, ensure_ascii=False, sort_keys=True))
+                    logger.info('update cache: ' + file_name)
 
         logger.info('特記事項からの追加列車：' + str(trains_append))
         logger.info('append_trains_from_remarks() ended.')
@@ -681,7 +768,7 @@ class Timetable:
     def make_timetable_from_json(self, trains, trains_timetable, remarks):
         """
         列車毎の時刻表JSONから各列車の時刻表を作成する。
-        :param trains: dict型、列車一覧、例：{'こだま723号': 'down', ... }
+        :param trains: dict型、列車一覧、例：{'こだま723号': ['down', '東京', '新大阪' [], []], ... }
         :param trains_timetable: dict型、列車毎の時刻表
         :param remarks: dict型、特記事項、例：{'こだま802号': {'updown': 'up', '事項': '土曜・休日運休', '運転日': [], '運休日': [,,,]}}
         :return: dict型、各列車の時刻表
@@ -698,6 +785,7 @@ class Timetable:
         }
         stations_name = self.__diagram_common['constant']['station']
         stations_id = {k:STATIONS.index(v) for k,v in stations_name.items() if v in STATIONS}
+        update_trains = False
         train_i = 0
         for train in trains.keys():
             train_i += 1
@@ -738,9 +826,6 @@ class Timetable:
                 logger.error('JSONの形式が異常？：' + train + ', 事項=' + rem + '、' + get_file + '.error')
                 continue
             stations = train_json['trainInfo']['trains'][0]['stations']
-            if stations[0]['station'] == '15' and train_json['trainInfo']['bound'] == '2':
-                # 新大阪発(最終駅)の下りは除く
-                continue
             train_start = train_json['trainInfo']['trains'][0]['startingStation']
             train_term = train_json['trainInfo']['trains'][0]['terminalStation']
             timetable = {
@@ -758,18 +843,16 @@ class Timetable:
                 timetable['remarks'] = remarks[train]
                 if 'updown' in timetable['remarks']:
                     del timetable['remarks']['updown']
-            if len(trains[train][2]) > 0:
-                if '◆' in trains[train][2][0]:
+            if len(trains[train][3]) > 0:
+                if '◆' in trains[train][3][0]:
                     if timetable['remarks']['事項'] == '':
                         timetable['remarks']['事項'] = '◆運転日注意'
             logger.debug('timetable["remarks"]=' + str(timetable['remarks']))
             if  timetable['remarks']['事項'][:6] == '◆運転日注意':
                 logger.debug('trains[' + train + ']=' + str(trains[train]))
-                if trains[train][3] != []:
-                    timetable['remarks']['運転日'] = trains[train][3]
+                if len(trains[train][4]) > 0:
+                    timetable['remarks']['運転日'] = trains[train][4]
             for st_i in range(len(stations)):
-                if stations_name[stations[st_i]['station']] not in STATIONS:
-                    continue
                 if stations[st_i]['arrivalTime'] is None:
                     continue
                 arrival_time = stations[st_i]['arrivalTime']
@@ -788,6 +871,19 @@ class Timetable:
                 timetable['timeLine'].append(table)
             timetable['property'][1] = timetable['timeLine'][0][1]  # 入線時刻
             timetable['property'][2] = timetable['timeLine'][-1][2] # 退線時刻
+            logger.debug(train+' property: '+str(timetable['property']))
+            if '.' in train:
+                if  timetable['property'][3] == trains[train][1] \
+                and timetable['property'][4] == trains[train][2]:
+                    pass
+                elif len(trains[train][3]) > 0 \
+                and (trains[train][1] == '' or trains[train][2] == ''):
+                    trains[train][1] = timetable['property'][3]
+                    trains[train][2] = timetable['property'][4]
+                    update_trains = True
+                    pass
+                else:
+                    continue
             if self.cache_timetable:
                 with open(train_file, 'w') as fh:
                     wlen = fh.write(json.dumps(timetable, ensure_ascii=False, sort_keys=True))
@@ -797,6 +893,14 @@ class Timetable:
                 timetables_up[train] = timetable    # 上り
         # 下りと上りを１つにする
         timetables = {'down': timetables_down, 'up': timetables_up}
+
+        # trainsが更新されている場合はキャッシュを更新する
+        if update_trains:
+            file_name = os.path.join(self.cache_dir, 'trains.json')
+            if os.path.exists(file_name):
+                with open(file_name, 'w') as fh:
+                    fh.write(json.dumps(trains, ensure_ascii=False, sort_keys=True))
+                    logger.info('update cache: ' + file_name)
 
         logger.info('make_timetable_from_json() ended.')
         # 復帰
@@ -965,9 +1069,24 @@ class Timetable:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
             logger.info('maked output_dir: ' + output_dir)
+        # 新神戸駅から博多駅の発着データを除外する
+        tokaido = list(range(STATIONS.index('新大阪')+1))
+        for updown in ['down', 'up']:
+            for train in list(timetables[updown].keys()):
+                if train == 'property':
+                    continue
+                tt = [tti for tti in  timetables[updown][train]['timeLine'] if tti[0] in tokaido]
+                if len(tt) <= 1:
+                    logger.info(train+' 対象外: '+str(timetables[updown][train]['property']))
+                    del timetables[updown][train]
+                else:
+                    timetables[updown][train]['timeLine'] = tt
+                    if timetables[updown][train]['property'][1] != tt[0][1]:
+                        timetables[updown][train]['property'][1] = tt[0][1]
+        # JSON形式に変換する
         tt_json_str = json.dumps(timetables, ensure_ascii=False, sort_keys=True)
         # 列車毎に改行する
-        tt_json_str = re.sub(r'("(こだま|ひかり|のぞみ|回送)[0-9]+号\.?[0-9]*"\:)', r'\n\1', tt_json_str)
+        tt_json_str = re.sub(r'("(こだま|ひかり|のぞみ|回送)[1-9][0-9]*\.?[1-9]?号"\:)', r'\n\1', tt_json_str)
         tt_json_str = re.sub(r'("(down|up)"\: )', r'\n\1', tt_json_str)
         wlen = 0
         with open(file_name, 'w') as fh:
