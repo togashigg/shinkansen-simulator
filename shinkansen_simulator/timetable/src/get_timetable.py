@@ -655,7 +655,7 @@ class Timetable:
         rem_array = re.split('[・、]', rem)
         for dt in rem_array:
             dt = dt.rstrip('日は')
-            dt_array = dt.split('～')
+            dt_array = re.split('[～〜]', dt)
             m_index = dt_array[0].find('月')
             if m_index >= 0:
                 new_month = ('0'+dt_array[0][:m_index])[-2:]
