@@ -141,6 +141,13 @@ class Timetable:
             cleared_date = self.today
             cleared_file = os.path.join(self.cache_dir, 'cleared_' + self.today)
             if not os.path.exists(cleared_file):
+                # キャッシュをクリアする
+                trains = {}
+                trains_path = os.path.join(self.cache_dir, 'trains.json')
+                if os.path.exists(trains_path):
+                    with open(trains_path, 'r') as fh:
+                        trains = json.loads(fh.read())
+                    logger.debug('read cache: ' + file_name)
                 for file_name in os.listdir(self.cache_dir):
                     if file_name[0] == '.':
                         continue
@@ -151,6 +158,11 @@ class Timetable:
                             continue
                         if '_回送9' in file_name:
                             continue
+                        if file_name[:3] == 'up_' or file_name[:5] == 'down_':
+                            train = file_name.split('.')[0].split('_')[1]
+                            if train in trains:
+                                if sum([1 for d in trains[train][4] if d >= self.start]) > 0:
+                                    continue
                     if (file_name[-8:] == '_up.html' or file_name[-10:] == '_down.html') \
                     and file_name.split('_')[1] >= self.start:
                         continue
@@ -433,8 +445,7 @@ class Timetable:
                 with open(file_name, 'r') as t_h:
                     trains_timetable[train] = t_h.read()
             if not os.path.exists(file_name) \
-            or os.path.getsize(file_name) == 0 \
-            or datetime.fromtimestamp(os.path.getmtime(file_name)).strftime('%Y%m%d') < self.__cleared_date:
+            or os.path.getsize(file_name) == 0:
                 if train in remarks:
                     if '事項' in remarks[train]:
                         if '◆' in remarks[train]['事項'][0]:
@@ -729,7 +740,9 @@ class Timetable:
             file_name = os.path.join(self.cache_dir, 'trains.json')
             if os.path.exists(file_name):
                 with open(file_name, 'w') as fh:
-                    fh.write(json.dumps(trains, ensure_ascii=False, sort_keys=True))
+                    t_json_str = json.dumps(trains, ensure_ascii=False, sort_keys=True)
+                    t_json_str = re.sub(r'("(こだま|ひかり|のぞみ|回送)[1-9][0-9]*\.?[1-9]?号"\:)', r'\n\1', t_json_str)
+                    fh.write(t_json_str)
                     logger.info('update cache: ' + file_name)
 
         logger.info('特記事項からの追加列車：' + str(trains_append))
@@ -761,7 +774,9 @@ class Timetable:
             file_name = os.path.join(self.cache_dir, 'trains.json')
             if os.path.exists(file_name):
                 with open(file_name, 'w') as fh:
-                    fh.write(json.dumps(trains, ensure_ascii=False, sort_keys=True))
+                    t_json_str = json.dumps(trains, ensure_ascii=False, sort_keys=True)
+                    t_json_str = re.sub(r'("(こだま|ひかり|のぞみ|回送)[1-9][0-9]*\.?[1-9]?号"\:)', r'\n\1', t_json_str)
+                    fh.write(t_json_str)
                     logger.info('update cache: ' + file_name)
         # 復帰
         logger.info('unique_trains_name() ended, len(trains)=' + str(len(trains)))
@@ -901,7 +916,9 @@ class Timetable:
             file_name = os.path.join(self.cache_dir, 'trains.json')
             if os.path.exists(file_name):
                 with open(file_name, 'w') as fh:
-                    fh.write(json.dumps(trains, ensure_ascii=False, sort_keys=True))
+                    t_json_str = json.dumps(trains, ensure_ascii=False, sort_keys=True)
+                    t_json_str = re.sub(r'("(こだま|ひかり|のぞみ|回送)[1-9][0-9]*\.?[1-9]?号"\:)', r'\n\1', t_json_str)
+                    fh.write(t_json_str)
                     logger.info('update cache: ' + file_name)
 
         logger.info('make_timetable_from_json() ended.')
