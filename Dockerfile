@@ -10,14 +10,15 @@
 # timetable: docker exec shinkansen-simulator /app/shinkansen_simulator/timetable/get.sh
 # base image
 FROM   python:3.10-slim
-MAINTAINER togashigg <KGG03575@nifty.com>
+# MAINTAINER togashigg <KGG03575@nifty.com>
+LABEL  maintainer="togashigg <KGG03575@nifty.com>"
 RUN    apt-get update && apt-get -y upgrade \
     && apt-get clean
 # タイムゾーン設定
 RUN    apt-get update \
     && apt-get install -y tzdata \
     && apt-get clean
-ENV    TZ Asia/Tokyo
+ENV    TZ="Asia/Tokyo"
 # 時刻同期
 # RUN    apt-get update \
 #     && apt-get install -y ntp \
@@ -32,7 +33,7 @@ RUN    apt-get update \
     && locale-gen ja_JP.UTF-8 \
     && echo 'LANG=ja_JP.UTF-8' > /etc/default/locale \
     && apt-get clean
-ENV    LANG ja_JP.UTF-8
+ENV    LANG="ja_JP.UTF-8"
 # スクレイピングに必要なパッケージをインストール(for requests_html library)
 # RUN    apt-get update \
 #     && apt-get install -yq gconf-service libasound2 libatk1.0-0 libc6 libcairo2 \
@@ -57,5 +58,6 @@ ADD    . /app/
 RUN    mkdir /app/static \
     && cp -pr /app/shinkansen_simulator/static /app/
 # Djangoを常駐化
+SHELL ["/bin/bash", "-c"]
 ENTRYPOINT python3 manage.py runserver 0.0.0.0:8080 --insecure
 EXPOSE 8080
