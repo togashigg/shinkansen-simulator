@@ -352,6 +352,7 @@ class Timetable:
                     get_file = os.path.join(self.cache_dir, st_way+'_'+train+'.json')
                     if os.path.exists(get_file):
                         get_file_1 = os.path.join(self.cache_dir, st_way+'_'+train_1+'.json')
+                        os.rename(get_file, get_file_1)
                         logger.info('rename file from '+get_file+' to '+get_file_1)
                     train = train_2
             else:
