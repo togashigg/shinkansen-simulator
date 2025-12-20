@@ -511,7 +511,7 @@ class Timetable:
         with open(remarks_file, 'r') as rfh:
             rfh_csv = csv.reader(rfh)
             for rec in rfh_csv:
-                if len(rec) > 0 and len(rec[0]) > 0 and rec[0][0] == '#':
+                if len(rec) <= 0 or len(rec[0]) > 0 and rec[0][0] == '#':
                     continue
                 rec = [r.strip() for r in rec]
                 if rec[0] == '期間':
