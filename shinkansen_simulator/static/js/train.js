@@ -487,7 +487,8 @@ phina.define('Train', {
 			this.train_image.scaleX = 0.6;
 			this.train_image.scaleY = 0.6;
 			if(this.diagram['remarks']['事項'].indexOf('☆') >= 0
-			&& this.diagram['remarks']['事項'].indexOf('Wonderful Dreams Shinkansen') >= 0) {
+			&& (this.diagram['remarks']['事項'].indexOf('Wonderful Dreams Shinkansen') >= 0
+			 or this.diagram['remarks']['事項'].indexOf('Sparkling Dreams Shinkansen') >= 0)) {
 				this.train_image_mm = Sprite("MM").addChildTo(this.train_image).setPosition(0, -40);
 				this.train_image_mm.scaleX = 0.5;
 				this.train_image_mm.scaleY = 0.5;
